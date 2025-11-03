@@ -276,50 +276,63 @@ export default function Data() {
       )}
 
       {/* 🌾 Crops Tab */}
-      {activeTab === "crops" && (
-        <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Leaf className="text-green-600" /> Crop Data
-            </h2>
-            <button
-              onClick={fetchCrops}
-              className="flex items-center gap-2 text-emerald-700 text-sm hover:text-emerald-900 transition"
-            >
-              <RefreshCw size={16} /> Refresh
-            </button>
-          </div>
-          {loading ? (
-            <p className="text-center text-gray-500 py-6">Loading crops...</p>
-          ) : crops.length === 0 ? (
-            <p className="text-center text-gray-500 py-6">No crops found</p>
-          ) : (
-            <table className="w-full text-sm text-gray-700">
-              <thead>
-                <tr className="text-left border-b border-gray-300">
-                  <th className="py-2">Field Name</th>
-                  <th className="py-2">Crop Type</th>
-                  <th className="py-2">Yield (kg)</th>
-                  <th className="py-2">Barangay</th>
+{activeTab === "crops" && (
+  <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <Leaf className="text-green-600" /> Crop Records
+      </h2>
+      <button
+        onClick={fetchCrops}
+        className="flex items-center gap-2 text-emerald-700 text-sm hover:text-emerald-900 transition"
+      >
+        <RefreshCw size={16} /> Refresh
+      </button>
+    </div>
+
+    {loading ? (
+      <p className="text-center text-gray-500 py-6">Loading crops...</p>
+    ) : (
+      <table className="w-full text-sm text-gray-700">
+        <thead>
+          <tr className="text-left border-b border-gray-300">
+            <th className="py-2">Farmer Name</th>
+            <th className="py-2">Field Name</th>
+            <th className="py-2">Crop</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* We’ll use farmers data since it already contains farms */}
+          {farmers
+            .filter((f) => f.farms && f.farms.length > 0)
+            .map((f) =>
+              f.farms.map((field) => (
+                <tr
+                  key={field._id}
+                  className="border-b border-gray-200 hover:bg-gray-100/60 transition"
+                >
+                  <td className="py-2">{f.username}</td>
+                  <td className="py-2">{field.fieldName}</td>
+                  <td className="py-2">
+                    {field.lastYearCrop || (
+                      <span className="text-gray-400 italic">N/A</span>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {crops.map((field) => (
-                  <tr
-                    key={field._id}
-                    className="border-b border-gray-200 hover:bg-gray-100/60"
-                  >
-                    <td className="py-2">{field.fieldName}</td>
-                    <td className="py-2">{field.lastYearCrop || "—"}</td>
-                    <td className="py-2">{field.kilos || "—"}</td>
-                    <td className="py-2">{field.barangay || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+              ))
+            )}
+        </tbody>
+      </table>
+    )}
+
+    {/* Show message if no fields exist */}
+    {farmers.every((f) => !f.farms || f.farms.length === 0) && (
+      <p className="text-center text-gray-500 py-6">
+        No farmers with recorded fields found.
+      </p>
+    )}
+  </div>
+)}
 
       {/* ☁️ Weather Tab */}
       {activeTab === "weather" && (
