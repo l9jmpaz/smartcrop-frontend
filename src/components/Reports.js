@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import jsPDF from "jspdft";
-import "jspdf-autotable";
+
 
 const baseUrl = "https://smartcrop-backend-in5e.onrender.com/api";
 
@@ -102,7 +101,12 @@ const allReports = farms.flatMap((farm) => {
     fetchData();
   }, []);
 const handlePrint = () => {
+  const { jsPDF } = await 
+  import("jspdf");
+  const autoTable = await
+  import("jspdf-autotable");
   const doc = new jsPDF();
+
   const title = `SmartCrop Reports - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Tab`;
   doc.setFontSize(16);
   doc.text(title, 14, 20);
@@ -176,6 +180,7 @@ const handlePrint = () => {
     🖨️ Print / Download
   </button>
 </div>
+
 
       {/* Tabs (Uniform with Data.js) */}
       <div className="flex space-x-4 mb-6 bg-emerald-50 rounded-full p-2 w-fit">
