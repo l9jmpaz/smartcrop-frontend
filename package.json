@@ -25,5 +25,19 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "description": "",
+  "main": "postcss.config.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/l9jmpaz/smartcrop-frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/l9jmpaz/smartcrop-frontend/issues"
+  },
+  "homepage": "https://github.com/l9jmpaz/smartcrop-frontend#readme"
 }
