@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-
 const baseUrl = "https://smartcrop-backend-in5e.onrender.com/api";
 
 export default function Reports() {
@@ -15,40 +14,37 @@ export default function Reports() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // ✅ Fetch all farms and yields
       const farmRes = await axios.get(`${baseUrl}/farm`);
       const farms = farmRes.data.farms || [];
-const allReports = farms.flatMap((farm) => {
-  // safety: skip if farm is missing or invalid
-  if (!farm || !farm.tasks) return [];
 
-  const farmerName =
-    farm.userId && typeof farm.userId === "object"
-      ? farm.userId.username || "Unknown"
-      : "Unknown";
+      const allReports = farms.flatMap((farm) => {
+        if (!farm || !farm.tasks) return [];
 
-  const farmerBarangay =
-    farm.userId && typeof farm.userId === "object"
-      ? farm.userId.barangay || "—"
-      : "—";
+        const farmerName =
+          farm.userId && typeof farm.userId === "object"
+            ? farm.userId.username || "Unknown"
+            : "Unknown";
 
-  return farm.tasks.map((task) => ({
-    _id: task._id,
-    farmer: farmerName,
-    barangay: farmerBarangay,
-    title: task.type || "Task",
-    crop: task.crop || "—",
-    kilos: Number(task.kilos) || 0,
-    date: new Date(task.date || task.createdAt || Date.now()),
-    completed: !!task.completed,
-  }));
-});
-      
+        const farmerBarangay =
+          farm.userId && typeof farm.userId === "object"
+            ? farm.userId.barangay || "—"
+            : "—";
 
+        return farm.tasks.map((task) => ({
+          _id: task._id,
+          farmer: farmerName,
+          barangay: farmerBarangay,
+          title: task.type || "Task",
+          crop: task.crop || "—",
+          kilos: Number(task.kilos) || 0,
+          date: new Date(task.date || task.createdAt || Date.now()),
+          completed: !!task.completed,
+        }));
+      });
 
       setReports(allReports);
 
-      // ✅ Completed harvests only
+      // ✅ Completed harvests
       const cropReports = allReports.filter(
         (r) =>
           r.title.toLowerCase().includes("harvest") &&
@@ -57,7 +53,7 @@ const allReports = farms.flatMap((farm) => {
       );
       setCrops(cropReports);
 
-      // ✅ Calculate yield trend (current vs previous month)
+      // ✅ Yield trend (month comparison)
       const now = new Date();
       const thisMonth = now.getMonth();
       const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
@@ -83,10 +79,9 @@ const allReports = farms.flatMap((farm) => {
       if (lastMonthYield > 0) {
         trend = ((thisMonthYield - lastMonthYield) / lastMonthYield) * 100;
       }
-
       setYieldTrend(trend.toFixed(1));
 
-      // ✅ Fetch weather records for avg rainfall
+      // ✅ Weather data
       const weatherRes = await axios.get(`${baseUrl}/weather`);
       const records = weatherRes.data.data || [];
       setWeather(records);
@@ -100,13 +95,22 @@ const allReports = farms.flatMap((farm) => {
   useEffect(() => {
     fetchData();
   }, []);
-const handlePrint = () => {
-  // 🖨 Temporarily simplify layout for printing
-  const originalTitle = document.title;
-  document.title = `SmartCrop Reports - ${activeTab.toUpperCase()}`;
-  window.print();
-  document.title = originalTitle;
-};
+
+  // 🖨 Print only the report section
+  const handlePrint = () => {
+    const printContents = document.getElementById("print-area").innerHTML;
+    const originalContents = document.body.innerHTML;
+    document.body.innerHTML = `
+      <div style="padding:20px; font-family:Arial">
+        <h2 style="text-align:center; color:#047857;">SmartCrop Reports - ${activeTab.toUpperCase()}</h2>
+        ${printContents}
+      </div>
+    `;
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full text-gray-500">
@@ -115,7 +119,6 @@ const handlePrint = () => {
     );
   }
 
-  // ✅ Compute average rainfall
   const avgRainfall =
     weather.length > 0
       ? (
@@ -125,18 +128,18 @@ const handlePrint = () => {
 
   return (
     <div className="p-6">
+      {/* Header + Print Button */}
       <div className="flex justify-between items-center mb-6">
-  <h2 className="text-2xl font-bold text-emerald-700">Reports</h2>
-  <button
-    onClick={handlePrint}
-    className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-  >
-    🖨️ Print / Download
-  </button>
-</div>
+        <h2 className="text-2xl font-bold text-emerald-700">Reports</h2>
+        <button
+          onClick={handlePrint}
+          className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+        >
+          🖨️ Print / Download
+        </button>
+      </div>
 
-
-      {/* Tabs (Uniform with Data.js) */}
+      {/* Tabs */}
       <div className="flex space-x-4 mb-6 bg-emerald-50 rounded-full p-2 w-fit">
         {["overview", "crop", "weather"].map((tab) => (
           <button
@@ -153,96 +156,95 @@ const handlePrint = () => {
         ))}
       </div>
 
-      {/* 🧭 Overview */}
-      {activeTab === "overview" && (
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
-              <h3 className="font-semibold text-gray-600">Crop</h3>
-              <p className="text-3xl font-bold text-emerald-700 mt-1">
-                {crops.length}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Farmers reporting this month
-              </p>
+      {/* PRINT CONTENT AREA */}
+      <div id="print-area">
+        {activeTab === "overview" && (
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
+                <h3 className="font-semibold text-gray-600">Crop</h3>
+                <p className="text-3xl font-bold text-emerald-700 mt-1">
+                  {crops.length}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Farmers reporting this month
+                </p>
+              </div>
+
+              <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
+                <h3 className="font-semibold text-gray-600">Yield Trend</h3>
+                <p
+                  className={`text-3xl font-bold mt-1 ${
+                    yieldTrend >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {yieldTrend}%
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {yieldTrend >= 0 ? "Increase" : "Decrease"} vs last month
+                </p>
+              </div>
+
+              <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
+                <h3 className="font-semibold text-gray-600">Avg. Rainfall</h3>
+                <p className="text-3xl font-bold text-emerald-700 mt-1">
+                  {avgRainfall} mm
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  This reporting period
+                </p>
+              </div>
             </div>
 
-            <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
-              <h3 className="font-semibold text-gray-600">Yield Trend</h3>
-              <p
-                className={`text-3xl font-bold mt-1 ${
-                  yieldTrend >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {yieldTrend}%
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                {yieldTrend >= 0 ? "Increase" : "Decrease"} vs last month
-              </p>
-            </div>
-
-            <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
-              <h3 className="font-semibold text-gray-600">Avg. Rainfall</h3>
-              <p className="text-3xl font-bold text-emerald-700 mt-1">
-                {avgRainfall} mm
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                This reporting period
-              </p>
+            {/* Recent Reports */}
+            <h3 className="text-lg font-semibold text-gray-700 mb-3">
+              Recent Reports
+            </h3>
+            <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-600 border-b">
+                    <th className="py-2">Report</th>
+                    <th className="py-2">Date</th>
+                    <th className="py-2">Farmer</th>
+                    <th className="py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reports.slice(0, 5).map((r) => (
+                    <tr key={r._id} className="border-b hover:bg-gray-50">
+                      <td className="py-2">{r.title}</td>
+                      <td className="py-2">
+                        {r.date.toLocaleDateString()}
+                      </td>
+                      <td className="py-2">{r.farmer}</td>
+                      <td
+                        className={`py-2 font-medium ${
+                          r.completed ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {r.completed ? "Completed" : "Pending"}
+                      </td>
+                    </tr>
+                  ))}
+                  {reports.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="text-center py-4 text-gray-500">
+                        No reports found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
+        )}
 
-          {/* Recent Reports */}
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">
-            Recent Reports
-          </h3>
-          <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-600 border-b">
-                  <th className="py-2">Report</th>
-                  <th className="py-2">Date</th>
-                  <th className="py-2">Farmer</th>
-                  <th className="py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.slice(0, 5).map((r) => (
-                  <tr key={r._id} className="border-b hover:bg-gray-50">
-                    <td className="py-2">{r.title}</td>
-                    <td className="py-2">
-                      {r.date.toLocaleDateString()}
-                    </td>
-                    <td className="py-2">{r.farmer}</td>
-                    <td
-                      className={`py-2 font-medium ${
-                        r.completed ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {r.completed ? "Completed" : "Pending"}
-                    </td>
-                  </tr>
-                ))}
-                {reports.length === 0 && (
-                  <tr>
-                    <td colSpan="4" className="text-center py-4 text-gray-500">
-                      No reports found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 🌾 Crop Tab */}
-      {activeTab === "crop" && (
-        <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">
-            Crop Yield Data
-          </h3>
-          <div className="overflow-x-auto">
+        {activeTab === "crop" && (
+          <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-700 mb-3">
+              Crop Yield Data
+            </h3>
             <table className="w-full text-sm">
               <thead className="border-b text-gray-600">
                 <tr>
@@ -269,27 +271,23 @@ const handlePrint = () => {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 🌦 Weather Tab */}
-      {activeTab === "weather" && (
-        <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">
-            Weather Summary
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-white p-4 rounded-xl shadow">
-              <h4 className="font-medium text-gray-600">Average Rainfall</h4>
-              <p className="text-3xl font-bold text-emerald-700 mt-2">
-                {avgRainfall} mm
-              </p>
-              <p className="text-sm text-gray-500">This reporting period</p>
+        {activeTab === "weather" && (
+          <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-700 mb-3">
+              Weather Summary
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-white p-4 rounded-xl shadow">
+                <h4 className="font-medium text-gray-600">Average Rainfall</h4>
+                <p className="text-3xl font-bold text-emerald-700 mt-2">
+                  {avgRainfall} mm
+                </p>
+                <p className="text-sm text-gray-500">This reporting period</p>
+              </div>
             </div>
-          </div>
 
-          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b text-gray-600">
                 <tr>
@@ -318,8 +316,8 @@ const handlePrint = () => {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
