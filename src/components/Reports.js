@@ -19,16 +19,22 @@ export default function Reports() {
       const farms = farmRes.data.farms || [];
 
       const allReports = farms.flatMap((farm) =>
-        (farm.tasks || []).map((task) => ({
-          _id: task._id,
-          farmer: farm.userId?.username || "Unknown",
-          title: task.type,
-          crop: task.crop || "—",
-          kilos: task.kilos || 0,
-          date: new Date(task.date),
-          completed: task.completed,
-        }))
-      );
+  (farm.tasks || []).map((task) => {
+    // 🧠 safely parse date
+    const parsedDate = new Date(task.date || task.createdAt || Date.now());
+    return {
+      _id: task._id,
+      farmer: farm.userId?.username || "Unknown",
+      barangay: farm.userId?.barangay || "—",
+      title: task.type || "Task",
+      crop: task.crop || "—",
+      kilos: Number(task.kilos) || 0,
+      date: parsedDate,
+      completed: !!task.completed,
+    };
+  })
+);
+
 
       setReports(allReports);
 
