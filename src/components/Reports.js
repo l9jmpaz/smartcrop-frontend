@@ -24,7 +24,10 @@ export default function Reports() {
     const parsedDate = new Date(task.date || task.createdAt || Date.now());
     return {
       _id: task._id,
-      farmer: farm.userId?.username || "Unknown",
+      farmer:
+  typeof farm.userId === "object"
+    ? farm.userId.username || "Unknown"
+    : "Unknown",
       barangay: farm.userId?.barangay || "—",
       title: task.type || "Task",
       crop: task.crop || "—",
