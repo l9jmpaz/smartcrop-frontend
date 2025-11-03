@@ -1,4 +1,3 @@
-// admin-frontend/src/components/Sidebar.js
 import React from "react";
 
 const NAV_ITEMS = [
@@ -6,19 +5,19 @@ const NAV_ITEMS = [
   { id: "data", icon: "📁", label: "Data" },
   { id: "feedback", icon: "💬", label: "Feedback" },
   { id: "reports", icon: "📑", label: "Reports" },
-  { id: "users", icon: "👥", label: "Users" }
+  { id: "users", icon: "👥", label: "Users" },
 ];
 
 export default function Sidebar({ active, setActive, onLogout, unreadCount }) {
   return (
-    <aside className="w-64 bg-[#eaf1f6] text-gray-900 flex flex-col shadow-lg">
+    <aside className="w-64 h-screen bg-[#eaf1f6] text-gray-900 flex flex-col shadow-lg">
       {/* Header */}
-      <div className="px-6 py-5 text-lg font-bold border-b border-gray-300 uppercase">
+      <div className="px-6 py-5 text-lg font-bold border-b border-gray-300 uppercase flex-shrink-0">
         Smart Crop Planning
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 text-sm">
+      <nav className="flex-1 overflow-y-auto py-4 text-sm">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
@@ -48,8 +47,8 @@ export default function Sidebar({ active, setActive, onLogout, unreadCount }) {
           )}
         </button>
 
-        {/* ✅ Settings now comes right after Notifications */}
-        <button
+        {/* ✅ Settings (Optional, currently hidden) */}
+        {/* <button
           onClick={() => setActive("settings")}
           className={`w-full flex items-center gap-3 px-5 py-3 transition-colors ${
             active === "settings"
@@ -57,19 +56,19 @@ export default function Sidebar({ active, setActive, onLogout, unreadCount }) {
               : "hover:bg-[#9fd8c4] text-gray-700"
           }`}
         >
-          {/*<span className="text-lg">⚙️</span> Settings*/}
-        </button>
+          <span className="text-lg">⚙️</span> Settings
+        </button> */}
       </nav>
 
-      {/* Footer: System Admin + Logout */}
-      <div className="px-5 py-4 border-t border-gray-300">
-        <div className="flex items-center gap-3 mb-4">
+      {/* Footer: System Admin + Logout (Pinned) */}
+      <div className="px-5 py-4 border-t border-gray-300 flex-shrink-0 bg-[#eaf1f6]">
+        <div className="flex items-center gap-3 mb-3">
           <span className="text-lg">👤</span>
           <span className="font-medium">System Administrator</span>
         </div>
         <button
           onClick={onLogout}
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded"
+          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded transition"
         >
           Logout
         </button>

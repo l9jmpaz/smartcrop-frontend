@@ -151,8 +151,12 @@ export default function Data() {
     if (activeTab === "weather") fetchWeather();
   }, [activeTab]);
 
-  const filteredFarmers = farmers.filter((f) =>
-    f.username?.toLowerCase().includes(search.toLowerCase())
+  // ✅ Hide admins + apply search
+const filteredFarmers = farmers
+  .filter(
+    (f) =>
+      (!f.role || f.role.toLowerCase() !== "admin") && // hide admin role
+      f.username?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
