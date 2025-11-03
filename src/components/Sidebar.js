@@ -10,14 +10,14 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ active, setActive, onLogout, unreadCount }) {
   return (
-    <aside className="w-64 h-screen bg-[#eaf1f6] text-gray-900 flex flex-col shadow-lg">
+    <aside className="w-64 h-screen bg-[#eaf1f6] text-gray-900 flex flex-col justify-between shadow-lg fixed left-0 top-0">
       {/* Header */}
-      <div className="px-6 py-5 text-lg font-bold border-b border-gray-300 uppercase flex-shrink-0">
+      <div className="px-6 py-5 text-lg font-bold border-b border-gray-300 uppercase">
         Smart Crop Planning
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 text-sm">
+      <nav className="flex flex-col py-4 text-sm flex-grow">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
@@ -46,22 +46,10 @@ export default function Sidebar({ active, setActive, onLogout, unreadCount }) {
             <span className="ml-auto w-2 h-2 bg-red-600 rounded-full"></span>
           )}
         </button>
-
-        {/* ✅ Settings (Optional, currently hidden) */}
-        {/* <button
-          onClick={() => setActive("settings")}
-          className={`w-full flex items-center gap-3 px-5 py-3 transition-colors ${
-            active === "settings"
-              ? "bg-[#9fd8c4] text-gray-900 font-semibold border-l-4 border-emerald-600"
-              : "hover:bg-[#9fd8c4] text-gray-700"
-          }`}
-        >
-          <span className="text-lg">⚙️</span> Settings
-        </button> */}
       </nav>
 
-      {/* Footer: System Admin + Logout (Pinned) */}
-      <div className="px-5 py-4 border-t border-gray-300 flex-shrink-0 bg-[#eaf1f6]">
+      {/* Footer: System Admin + Logout */}
+      <div className="px-5 py-4 border-t border-gray-300 bg-[#eaf1f6]">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-lg">👤</span>
           <span className="font-medium">System Administrator</span>
