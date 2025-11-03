@@ -275,7 +275,7 @@ export default function Data() {
         </>
       )}
 
-      {/* 🌾 Crops Tab */}
+  {/* 🌾 Crops Tab */}
 {activeTab === "crops" && (
   <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
     <div className="flex justify-between items-center mb-4">
@@ -302,37 +302,54 @@ export default function Data() {
           </tr>
         </thead>
         <tbody>
-          {/* We’ll use farmers data since it already contains farms */}
           {farmers
-            .filter((f) => f.farms && f.farms.length > 0)
+            // ✅ Only show farmers with valid farms
+            .filter((f) => Array.isArray(f.farms) && f.farms.length > 0)
+            // ✅ Map each valid farm
             .map((f) =>
-              f.farms.map((field) => (
-                <tr
-                  key={field._id}
-                  className="border-b border-gray-200 hover:bg-gray-100/60 transition"
-                >
-                  <td className="py-2">{f.username}</td>
-                  <td className="py-2">{field.fieldName}</td>
-                  <td className="py-2">
-                    {field.lastYearCrop || (
-                      <span className="text-gray-400 italic">N/A</span>
-                    )}
-                  </td>
-                </tr>
-              ))
+              f.farms
+                // ✅ Only include farms with valid field + crop
+                .filter(
+                  (farm) =>
+                    farm.fieldName &&
+                    farm.lastYearCrop &&
+                    farm.lastYearCrop.toLowerCase() !== "none" &&
+                    farm.lastYearCrop.toLowerCase() !== "n/a" &&
+                    farm.lastYearCrop.trim() !== ""
+                )
+                .map((farm) => (
+                  <tr
+                    key={farm._id}
+                    className="border-b border-gray-200 hover:bg-gray-100/60 transition"
+                  >
+                    <td className="py-2">{f.username}</td>
+                    <td className="py-2">{farm.fieldName}</td>
+                    <td className="py-2">{farm.lastYearCrop}</td>
+                  </tr>
+                ))
             )}
         </tbody>
       </table>
     )}
 
-    {/* Show message if no fields exist */}
-    {farmers.every((f) => !f.farms || f.farms.length === 0) && (
+    {/* ✅ Show message if no valid farms exist */}
+    {farmers.every(
+      (f) =>
+        !f.farms ||
+        f.farms.length === 0 ||
+        f.farms.every(
+          (farm) =>
+            !farm.lastYearCrop ||
+            ["none", "n/a", ""].includes(farm.lastYearCrop?.toLowerCase())
+        )
+    ) && (
       <p className="text-center text-gray-500 py-6">
-        No farmers with recorded fields found.
+        No valid crop records found.
       </p>
     )}
   </div>
 )}
+
 
       {/* ☁️ Weather Tab */}
       {activeTab === "weather" && (
