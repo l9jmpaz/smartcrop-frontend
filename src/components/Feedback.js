@@ -17,9 +17,9 @@ export default function Feedback() {
   const [search, setSearch] = useState("");
   const [userFilter, setUserFilter] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedFeedback, setSelectedFeedback] = useState(null); // 🟢 For modal
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
 
-  // ✅ Fetch feedback data
+  // ✅ Fetch feedback
   const fetchFeedback = async () => {
     try {
       setLoading(true);
@@ -44,7 +44,6 @@ export default function Feedback() {
     }
   };
 
-  // ✅ Mark as resolved
   const markResolved = async (id) => {
     try {
       await axios.put(`${baseUrl}/support/${id}`);
@@ -60,21 +59,16 @@ export default function Feedback() {
 
   return (
     <div className="p-6 bg-emerald-50/40 rounded-2xl shadow-sm relative">
-      {/* ====== HEADER ====== */}
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">
-        Feedback Overview
-      </h2>
-
-      {/* ====== FILTER TABS ====== */}
-      <div className="flex gap-3 mb-6">
+      {/* ====== Tabs (styled like Farmers/Crops/Weather) ====== */}
+      <div className="flex items-center gap-4 mb-6">
         {["all", "unread", "resolved"].map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`px-6 py-2 rounded-full font-medium transition-all ${
+            className={`px-5 py-2 rounded-full font-medium text-sm transition-all ${
               filter === tab
-                ? "bg-emerald-600 text-white shadow"
-                : "bg-gray-200 text-gray-700 hover:bg-emerald-100"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "bg-white text-gray-700 border border-gray-200 hover:bg-emerald-100"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -82,9 +76,9 @@ export default function Feedback() {
         ))}
       </div>
 
-      {/* ====== SEARCH & FILTER ====== */}
+      {/* ====== Search & Filter ====== */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {/* Search box */}
+        {/* Search feedback */}
         <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2 flex-1 min-w-[220px]">
           <Search className="text-gray-400 mr-2" size={18} />
           <input
@@ -96,7 +90,7 @@ export default function Feedback() {
           />
         </div>
 
-        {/* User filter */}
+        {/* Filter by user */}
         <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2 flex-1 min-w-[220px]">
           <User className="text-gray-400 mr-2" size={18} />
           <input
@@ -109,7 +103,7 @@ export default function Feedback() {
         </div>
       </div>
 
-      {/* ====== FEEDBACK LIST ====== */}
+      {/* ====== Recent Feedback Section ====== */}
       <div className="bg-white rounded-2xl shadow-sm p-5">
         <h3 className="text-md font-semibold text-gray-700 mb-3">
           Recent Feedback
@@ -174,7 +168,7 @@ export default function Feedback() {
                         size={18}
                         className="text-gray-600 hover:text-emerald-600 cursor-pointer transition"
                         title="View Message"
-                        onClick={() => setSelectedFeedback(item)} // 🟢 open modal
+                        onClick={() => setSelectedFeedback(item)}
                       />
                       {item.status === "unread" && (
                         <CheckCircle2
@@ -231,7 +225,6 @@ export default function Feedback() {
               </div>
             </div>
 
-            {/* Modal footer */}
             {selectedFeedback.status === "unread" && (
               <div className="flex justify-end mt-5">
                 <button
