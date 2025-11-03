@@ -1,8 +1,8 @@
-// admin-frontend/src/components/Login.js
 import React, { useState } from "react";
 import axios from "axios";
+import logo from "../assets/logo.png"; // ✅ adjust the path to where your image is
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com";
+const baseUrl = "https://smartcrop-backend-in5e.onrender.com/";
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -22,9 +22,9 @@ export default function Login({ onLogin }) {
       });
 
       if (res.data.success) {
-        localStorage.setItem("token", res.data.token); // save JWT
+        localStorage.setItem("token", res.data.token);
         localStorage.setItem("adminUser", username);
-        onLogin(); // move to dashboard
+        onLogin();
       } else {
         setError(res.data.message || "Invalid credentials");
       }
@@ -39,9 +39,19 @@ export default function Login({ onLogin }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-lg w-96">
-        <h2 className="text-2xl font-bold text-center mb-6 text-emerald-700">
-          Admin Login
-        </h2>
+        
+        {/* 🖼️ Logo Section */}
+        <div className="flex flex-col items-center mb-6">
+          <img
+            src={logo}
+            alt="SmartCrop Logo"
+            className="w-20 h-20 mb-3 object-contain"
+          />
+          <h2 className="text-2xl font-bold text-center text-emerald-700">
+            Admin Login
+          </h2>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
