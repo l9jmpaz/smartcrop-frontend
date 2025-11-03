@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import jsPDF from "jspdft";
+import "jspdf-autotable";
 
 const baseUrl = "https://smartcrop-backend-in5e.onrender.com/api";
 
@@ -17,33 +19,32 @@ export default function Reports() {
       // ✅ Fetch all farms and yields
       const farmRes = await axios.get(`${baseUrl}/farm`);
       const farms = farmRes.data.farms || [];
+const allReports = farms.flatMap((farm) => {
+  // safety: skip if farm is missing or invalid
+  if (!farm || !farm.tasks) return [];
 
-      const allReports = farms.flatMap((farm) =>
-  (farm.tasks || []).map((task) => {
-    // 🧠 safely parse date
-    const parsedDate = new Date(task.date || task.createdAt || Date.now());
-    return {
-      _id: task._id,
-      farmer:
-  farm && farm.userId
-    ? typeof farm.userId === "object"
+  const farmerName =
+    farm.userId && typeof farm.userId === "object"
       ? farm.userId.username || "Unknown"
-      : "Unknown"
-    : "Unknown",
-     barangay:
-  farm && farm.userId
-    ? typeof farm.userId === "object"
+      : "Unknown";
+
+  const farmerBarangay =
+    farm.userId && typeof farm.userId === "object"
       ? farm.userId.barangay || "—"
-      : "—"
-    : "—",
-      title: task.type || "Task",
-      crop: task.crop || "—",
-      kilos: Number(task.kilos) || 0,
-      date: parsedDate,
-      completed: !!task.completed,
-    };
-  })
-);
+      : "—";
+
+  return farm.tasks.map((task) => ({
+    _id: task._id,
+    farmer: farmerName,
+    barangay: farmerBarangay,
+    title: task.type || "Task",
+    crop: task.crop || "—",
+    kilos: Number(task.kilos) || 0,
+    date: new Date(task.date || task.createdAt || Date.now()),
+    completed: !!task.completed,
+  }));
+});
+      
 
 
       setReports(allReports);
@@ -100,7 +101,54 @@ export default function Reports() {
   useEffect(() => {
     fetchData();
   }, []);
+const handlePrint = () => {
+  const doc = new jsPDF();
+  const title = `SmartCrop Reports - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Tab`;
+  doc.setFontSize(16);
+  doc.text(title, 14, 20);
 
+  if (activeTab === "overview") {
+    const overviewData = reports.slice(0, 10).map((r, i) => [
+      i + 1,
+      r.title,
+      r.crop,
+      r.farmer,
+      r.date.toLocaleDateString(),
+      r.completed ? "Completed" : "Pending",
+    ]);
+    doc.autoTable({
+      startY: 30,
+      head: [["#", "Task", "Crop", "Farmer", "Date", "Status"]],
+      body: overviewData,
+    });
+  } else if (activeTab === "crop") {
+    const cropData = crops.map((c, i) => [
+      i + 1,
+      c.farmer,
+      c.crop,
+      c.kilos,
+    ]);
+    doc.autoTable({
+      startY: 30,
+      head: [["#", "Farmer", "Crop", "Kilos (kg)"]],
+      body: cropData,
+    });
+  } else if (activeTab === "weather") {
+    const weatherData = weather.map((w, i) => [
+      i + 1,
+      new Date(w.date).toLocaleDateString(),
+      w.temperature,
+      w.rainfall,
+    ]);
+    doc.autoTable({
+      startY: 30,
+      head: [["#", "Date", "Temperature (°C)", "Rainfall (mm)"]],
+      body: weatherData,
+    });
+  }
+
+  doc.save(`${activeTab}_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+};
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full text-gray-500">
@@ -119,7 +167,15 @@ export default function Reports() {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold text-emerald-700 mb-6">Reports</h2>
+      <div className="flex justify-between items-center mb-6">
+  <h2 className="text-2xl font-bold text-emerald-700">Reports</h2>
+  <button
+    onClick={handlePrint}
+    className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+  >
+    🖨️ Print / Download
+  </button>
+</div>
 
       {/* Tabs (Uniform with Data.js) */}
       <div className="flex space-x-4 mb-6 bg-emerald-50 rounded-full p-2 w-fit">
