@@ -43,7 +43,12 @@ export default function Login({ onLogin }) {
         
         {/* 🖼️ Logo Section */}
         <div className="flex flex-col items-center mb-6">
- <img src="/logo.png" alt="SmartCrop Logo" />
+ <img
+  src="/logo.png"
+  alt="SmartCrop Logo"
+  className="w-24 h-24 mb-4 object-contain"
+/>
+
   <h2 className="text-2xl font-bold text-center text-emerald-700">
     Admin Login
   </h2>
