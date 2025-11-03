@@ -101,61 +101,66 @@ const allReports = farms.flatMap((farm) => {
     fetchData();
   }, []);
 const handlePrint = () => {
-  // Wrap in async IIFE so await works safely
   (async () => {
-    const { jsPDF } = await import("jspdf");
-    await import("jspdf-autotable");
+    try {
+      const { jsPDF } = await import("jspdf");
+      await import("jspdf-autotable");
 
-    const doc = new jsPDF();
-    const title = `SmartCrop Reports - ${
-      activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
-    } Tab`;
-    doc.setFontSize(16);
-    doc.text(title, 14, 20);
+      const doc = new jsPDF();
+      const title = `SmartCrop Reports - ${
+        activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
+      } Tab`;
 
-    if (activeTab === "overview") {
-      const overviewData = reports.slice(0, 10).map((r, i) => [
-        i + 1,
-        r.title,
-        r.crop,
-        r.farmer,
-        r.date.toLocaleDateString(),
-        r.completed ? "Completed" : "Pending",
-      ]);
-      doc.autoTable({
-        startY: 30,
-        head: [["#", "Task", "Crop", "Farmer", "Date", "Status"]],
-        body: overviewData,
-      });
-    } else if (activeTab === "crop") {
-      const cropData = crops.map((c, i) => [
-        i + 1,
-        c.farmer,
-        c.crop,
-        c.kilos,
-      ]);
-      doc.autoTable({
-        startY: 30,
-        head: [["#", "Farmer", "Crop", "Kilos (kg)"]],
-        body: cropData,
-      });
-    } else if (activeTab === "weather") {
-      const weatherData = weather.map((w, i) => [
-        i + 1,
-        new Date(w.date).toLocaleDateString(),
-        w.temperature,
-        w.rainfall,
-      ]);
-      doc.autoTable({
-        startY: 30,
-        head: [["#", "Date", "Temperature (°C)", "Rainfall (mm)"]],
-        body: weatherData,
-      });
+      doc.setFontSize(16);
+      doc.text(title, 14, 20);
+
+      if (activeTab === "overview") {
+        const overviewData = reports.slice(0, 10).map((r, i) => [
+          i + 1,
+          r.title,
+          r.crop,
+          r.farmer,
+          new Date(r.date).toLocaleDateString(),
+          r.completed ? "Completed" : "Pending",
+        ]);
+        doc.autoTable({
+          startY: 30,
+          head: [["#", "Task", "Crop", "Farmer", "Date", "Status"]],
+          body: overviewData,
+        });
+      } else if (activeTab === "crop") {
+        const cropData = crops.map((c, i) => [
+          i + 1,
+          c.farmer,
+          c.crop,
+          c.kilos,
+        ]);
+        doc.autoTable({
+          startY: 30,
+          head: [["#", "Farmer", "Crop", "Kilos (kg)"]],
+          body: cropData,
+        });
+      } else if (activeTab === "weather") {
+        const weatherData = weather.map((w, i) => [
+          i + 1,
+          new Date(w.date).toLocaleDateString(),
+          w.temperature,
+          w.rainfall,
+        ]);
+        doc.autoTable({
+          startY: 30,
+          head: [["#", "Date", "Temperature (°C)", "Rainfall (mm)"]],
+          body: weatherData,
+        });
+      }
+
+      doc.save(
+        `${activeTab}_report_${new Date().toISOString().slice(0, 10)}.pdf`
+      );
+    } catch (error) {
+      console.error("❌ Print error:", error);
+      alert("Print failed. Please refresh and try again.");
     }
-
-    doc.save(
-      `${activeTab}_report_${new Date().toISOString().slice(0, 10)}.pdf`
-    );
   })();
 };
   if (loading) {
