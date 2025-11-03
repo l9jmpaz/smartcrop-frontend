@@ -43,11 +43,7 @@ export default function Login({ onLogin }) {
         
         {/* 🖼️ Logo Section */}
         <div className="flex flex-col items-center mb-6">
-  <img
-    src="./assets/logo.png"  // ✅ public path
-    alt="SmartCrop"
-    className="w-24 h-24 mb-4 object-contain"
-  />
+ <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="SmartCrop Logo" />
   <h2 className="text-2xl font-bold text-center text-emerald-700">
     Admin Login
   </h2>
