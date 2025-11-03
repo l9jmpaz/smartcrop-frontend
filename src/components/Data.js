@@ -176,106 +176,89 @@ export default function Data() {
         ))}
       </div>
 
-      {/* 🧑 Farmer Tab */}
-      {activeTab === "farmer" && (
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center bg-white rounded-full shadow-sm w-1/2 px-4 py-2 border border-gray-200">
-              <Search size={18} className="text-gray-400 mr-2" />
-              <input
-                type="text"
-                placeholder="Search by name or ID"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 outline-none text-sm text-gray-700"
-              />
-            </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition"
-            >
-              <UserPlus size={18} /> Add Farmer
-            </button>
-          </div>
+      {/* 🧑 Farmers Tab */}
+{activeTab === "farmer" && (
+  <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-lg font-semibold text-gray-800">Farmers Data</h2>
+      <button
+        onClick={() => setShowModal(true)}
+        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition"
+      >
+        <UserPlus size={18} /> Add Farmer
+      </button>
+    </div>
 
-          <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Farmers Data
-            </h2>
+    {loading ? (
+      <div className="text-center text-gray-500 py-10">Loading farmers...</div>
+    ) : filteredFarmers.length === 0 ? (
+      <div className="text-center text-gray-500 py-6">No farmers found</div>
+    ) : (
+      <div className="relative max-h-[65vh] overflow-y-auto rounded-lg border border-gray-200">
+        <table className="w-full text-sm text-gray-700">
+          <thead className="sticky top-0 bg-emerald-100 shadow-sm">
+            <tr className="text-left border-b border-gray-300">
+              <th className="py-2 px-3">Name</th>
+              <th className="py-2 px-3">Phone</th>
+              <th className="py-2 px-3">Barangay</th>
+              <th className="py-2 px-3">Status</th>
+              <th className="py-2 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredFarmers.map((f) => (
+              <tr
+                key={f._id}
+                className="border-b border-gray-200 hover:bg-gray-100/60 transition"
+              >
+                <td className="py-2 px-3 flex items-center gap-3">
+                  <User
+                    className={`${
+                      f.status === "Active"
+                        ? "text-emerald-600"
+                        : "text-gray-400"
+                    }`}
+                    size={20}
+                  />
+                  {f.username}
+                </td>
+                <td className="py-2 px-3">{f.phone || "—"}</td>
+                <td className="py-2 px-3">{f.barangay || "—"}</td>
+                <td className="py-2 px-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      f.status === "Active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {f.status}
+                  </span>
+                </td>
+                <td className="py-2 px-3 text-right space-x-3">
+                  <button
+                    onClick={() => editFarmer(f._id, f)}
+                    className="text-blue-600 hover:text-blue-800 transition"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={() => deleteFarmer(f._id)}
+                    className="text-red-600 hover:text-red-800 transition"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)}
 
-            {loading ? (
-              <div className="text-center text-gray-500 py-10">
-                Loading farmers...
-              </div>
-            ) : filteredFarmers.length === 0 ? (
-              <div className="text-center text-gray-500 py-6">
-                No farmers found
-              </div>
-            ) : (
-              <table className="w-full text-sm text-gray-700">
-                <thead>
-                  <tr className="text-left border-b border-gray-300">
-                    <th className="py-2 font-medium">Name</th>
-                    <th className="py-2 font-medium">Phone</th>
-                    <th className="py-2 font-medium">Barangay</th>
-                    <th className="py-2 font-medium">Status</th>
-                    <th className="py-2 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFarmers.map((f) => (
-                    <tr
-                      key={f._id}
-                      className="border-b border-gray-200 hover:bg-gray-100/60 transition"
-                    >
-                      <td className="py-2 flex items-center gap-3">
-                        <User
-                          className={`${
-                            f.status === "Active"
-                              ? "text-emerald-600"
-                              : "text-gray-400"
-                          }`}
-                          size={20}
-                        />
-                        {f.username}
-                      </td>
-                      <td className="py-2">{f.phone || "—"}</td>
-                      <td className="py-2">{f.barangay || "—"}</td>
-                      <td className="py-2">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            f.status === "Active"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-200 text-gray-700"
-                          }`}
-                        >
-                          {f.status}
-                        </span>
-                      </td>
-                      <td className="py-2 text-right space-x-3">
-                        <button
-                          onClick={() => editFarmer(f._id, f)}
-                          className="text-blue-600 hover:text-blue-800 transition"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => deleteFarmer(f._id)}
-                          className="text-red-600 hover:text-red-800 transition"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </>
-      )}
-
-  {/* 🌾 Crops Tab */}
+{/* 🌾 Crops Tab */}
 {activeTab === "crops" && (
   <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
     <div className="flex justify-between items-center mb-4">
@@ -293,46 +276,44 @@ export default function Data() {
     {loading ? (
       <p className="text-center text-gray-500 py-6">Loading crops...</p>
     ) : (
-      <table className="w-full text-sm text-gray-700">
-        <thead>
-          <tr className="text-left border-b border-gray-300">
-            <th className="py-2">Farmer Name</th>
-            <th className="py-2">Field Name</th>
-            <th className="py-2">Crop</th>
-          </tr>
-        </thead>
-        <tbody>
-          {farmers
-            // ✅ Only show farmers with valid farms
-            .filter((f) => Array.isArray(f.farms) && f.farms.length > 0)
-            // ✅ Map each valid farm
-            .map((f) =>
-              f.farms
-                // ✅ Only include farms with valid field + crop
-                .filter(
-                  (farm) =>
-                    farm.fieldName &&
-                    farm.lastYearCrop &&
-                    farm.lastYearCrop.toLowerCase() !== "none" &&
-                    farm.lastYearCrop.toLowerCase() !== "n/a" &&
-                    farm.lastYearCrop.trim() !== ""
-                )
-                .map((farm) => (
-                  <tr
-                    key={farm._id}
-                    className="border-b border-gray-200 hover:bg-gray-100/60 transition"
-                  >
-                    <td className="py-2">{f.username}</td>
-                    <td className="py-2">{farm.fieldName}</td>
-                    <td className="py-2">{farm.lastYearCrop}</td>
-                  </tr>
-                ))
-            )}
-        </tbody>
-      </table>
+      <div className="relative max-h-[65vh] overflow-y-auto rounded-lg border border-gray-200">
+        <table className="w-full text-sm text-gray-700">
+          <thead className="sticky top-0 bg-emerald-100 shadow-sm">
+            <tr className="text-left border-b border-gray-300">
+              <th className="py-2 px-3">Farmer Name</th>
+              <th className="py-2 px-3">Field Name</th>
+              <th className="py-2 px-3">Crop</th>
+            </tr>
+          </thead>
+          <tbody>
+            {farmers
+              .filter((f) => Array.isArray(f.farms) && f.farms.length > 0)
+              .map((f) =>
+                f.farms
+                  .filter(
+                    (farm) =>
+                      farm.fieldName &&
+                      farm.lastYearCrop &&
+                      farm.lastYearCrop.toLowerCase() !== "none" &&
+                      farm.lastYearCrop.toLowerCase() !== "n/a" &&
+                      farm.lastYearCrop.trim() !== ""
+                  )
+                  .map((farm) => (
+                    <tr
+                      key={farm._id}
+                      className="border-b border-gray-200 hover:bg-gray-100/60 transition"
+                    >
+                      <td className="py-2 px-3">{f.username}</td>
+                      <td className="py-2 px-3">{farm.fieldName}</td>
+                      <td className="py-2 px-3">{farm.lastYearCrop}</td>
+                    </tr>
+                  ))
+              )}
+          </tbody>
+        </table>
+      </div>
     )}
 
-    {/* ✅ Show message if no valid farms exist */}
     {farmers.every(
       (f) =>
         !f.farms ||
@@ -350,61 +331,62 @@ export default function Data() {
   </div>
 )}
 
+{/* ☁️ Weather Tab */}
+{activeTab === "weather" && (
+  <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <Cloud className="text-blue-500" /> Weather Data
+      </h2>
+      <button
+        onClick={fetchWeather}
+        className="flex items-center gap-2 text-emerald-700 text-sm hover:text-emerald-900 transition"
+      >
+        <RefreshCw size={16} /> Refresh
+      </button>
+    </div>
 
-      {/* ☁️ Weather Tab */}
-      {activeTab === "weather" && (
-        <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Cloud className="text-blue-500" /> Weather Data
-            </h2>
-            <button
-              onClick={fetchWeather}
-              className="flex items-center gap-2 text-emerald-700 text-sm hover:text-emerald-900 transition"
-            >
-              <RefreshCw size={16} /> Refresh
-            </button>
-          </div>
-
-          {loading ? (
-            <p className="text-center text-gray-500 py-6">Loading weather...</p>
-          ) : !weather ? (
-            <p className="text-center text-gray-500 py-6">No data found</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
-              <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
-                <Thermometer className="text-red-500" />
-                <div>
-                  <p className="text-sm text-gray-500">Temperature</p>
-                  <p className="font-semibold">{weather.temp || "—"} °C</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
-                <Droplet className="text-blue-500" />
-                <div>
-                  <p className="text-sm text-gray-500">Humidity</p>
-                  <p className="font-semibold">{weather.humidity || "—"}%</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
-                <MapPin className="text-emerald-600" />
-                <div>
-                  <p className="text-sm text-gray-500">Location</p>
-                  <p className="font-semibold">{weather.location || "—"}</p>
-                </div>
-              </div>
-              <div className="col-span-3 text-sm text-gray-500 mt-4">
-                Last Sync:{" "}
-                <span className="font-medium text-gray-700">
-                  {weather.lastSync
-                    ? new Date(weather.lastSync).toLocaleString()
-                    : "—"}
-                </span>
-              </div>
+    {loading ? (
+      <p className="text-center text-gray-500 py-6">Loading weather...</p>
+    ) : !weather ? (
+      <p className="text-center text-gray-500 py-6">No data found</p>
+    ) : (
+      <div className="relative max-h-[65vh] overflow-y-auto rounded-lg border border-gray-200 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
+          <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
+            <Thermometer className="text-red-500" />
+            <div>
+              <p className="text-sm text-gray-500">Temperature</p>
+              <p className="font-semibold">{weather.temp || "—"} °C</p>
             </div>
-          )}
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
+            <Droplet className="text-blue-500" />
+            <div>
+              <p className="text-sm text-gray-500">Humidity</p>
+              <p className="font-semibold">{weather.humidity || "—"}%</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
+            <MapPin className="text-emerald-600" />
+            <div>
+              <p className="text-sm text-gray-500">Location</p>
+              <p className="font-semibold">{weather.location || "—"}</p>
+            </div>
+          </div>
+          <div className="col-span-3 text-sm text-gray-500 mt-4">
+            Last Sync:{" "}
+            <span className="font-medium text-gray-700">
+              {weather.lastSync
+                ? new Date(weather.lastSync).toLocaleString()
+                : "—"}
+            </span>
+          </div>
         </div>
-      )}
+      </div>
+    )}
+  </div>
+)}
 
       {/* ✳️ Add Farmer Modal */}
       {showModal && (
