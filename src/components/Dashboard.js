@@ -9,7 +9,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com/api";
+const baseUrl = "https://smartcrop-backend-in5e.onrender.com";
 
 export default function Dashboard() {
   const [systemHealth, setSystemHealth] = useState("Loading...");
@@ -29,12 +29,12 @@ export default function Dashboard() {
             : "⚠️ Some systems offline"
         );
 
-        const alertRes = await axios.get(`${baseUrl}/alerts`).catch(() => ({ data: [] }));
+        const alertRes = await axios.get(`${baseUrl}/api/alerts`).catch(() => ({ data: [] }));
         const allAlerts = alertRes.data || [];
         setAlerts(allAlerts);
         setAlertCount(allAlerts.filter((a) => a.severity === "Critical").length);
 
-        const farmRes = await axios.get(`${baseUrl}/farm`);
+        const farmRes = await axios.get(`${baseUrl}/api/farm`);
         const farms = farmRes.data.farms || [];
         let totalHarvests = 0;
         farms.forEach((farm) => {
@@ -47,7 +47,7 @@ export default function Dashboard() {
         });
         setCropCount(totalHarvests);
 
-        const weatherRes = await axios.get(`${baseUrl}/ai/weather`).catch(() => ({ data: {} }));
+        const weatherRes = await axios.get(`${baseUrl}/api/ai/weather`).catch(() => ({ data: {} }));
         setWeatherSync(weatherRes.data.lastSync || new Date().toLocaleString());
       } catch (err) {
         console.error("⚠️ Dashboard fetch error:", err);
