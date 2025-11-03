@@ -1,7 +1,5 @@
-
 import React, { useState } from "react";
 import axios from "axios";
-// ✅ adjust the path to where your image is
 
 const baseUrl = "https://smartcrop-backend-in5e.onrender.com/";
 
@@ -38,22 +36,24 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-96">
-        
-        {/* 🖼️ Logo Section */}
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-96 text-center">
+        {/* ✅ Logo Section */}
         <div className="flex flex-col items-center mb-6">
- <img
-  src="/logo.png"
-  alt="SmartCrop Logo"
-  className="w-24 h-24 mb-4 object-contain"
-/>
+          <img
+            src="/logo.png"  // ✅ correct working path
+            alt="SmartCrop Logo"
+            className="w-24 h-24 mb-3 object-contain drop-shadow-sm"
+          />
+          <h2 className="text-2xl font-bold text-emerald-700">
+            SMART CROP PLANNING
+          </h2>
+          <p className="text-gray-500 text-sm mt-1">
+            Admin Panel Login
+          </p>
+        </div>
 
-  <h2 className="text-2xl font-bold text-center text-emerald-700">
-    Admin Login
-  </h2>
-</div>
-
+        {/* ✅ Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
