@@ -35,37 +35,36 @@ export default function App() {
 
   // ✅ Main Admin Dashboard Layout
   return (
-    <div className="flex min-h-screen bg-gray-100 text-gray-800">
-      {/* Sidebar */}
-      <Sidebar
-        active={active}
-        setActive={setActive}
-        onLogout={handleLogout}
-        unreadCount={unreadCount}
-      />
+  <div className="bg-gray-100 text-gray-800 min-h-screen">
+    {/* Sidebar (fixed) */}
+    <Sidebar
+      active={active}
+      setActive={setActive}
+      onLogout={handleLogout}
+      unreadCount={unreadCount}
+    />
 
-      {/* Main Section */}
-      <main className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="px-6 py-4 flex justify-center items-center shadow bg-white">
-          <h1 className="text-lg font-semibold text-black">
-            Admin Dashboard
-          </h1>
-        </header>
+    {/* Main Section (shifted right) */}
+    <main className="ml-64 flex flex-col min-h-screen">
+      {/* Header */}
+      <header className="px-6 py-4 flex justify-center items-center shadow bg-white sticky top-0 z-10">
+        <h1 className="text-lg font-semibold text-black">Admin Dashboard</h1>
+      </header>
 
-        {/* Content Area */}
-        <div className="flex-1 p-6 overflow-auto">
-          {active === "dashboard" && <Dashboard />}
-          {active === "data" && <DataTab />}
-          {active === "feedback" && <Feedback />}
-          {active === "reports" && <Reports />}
-          {active === "users" && <Users />}
-          {active === "notifications" && (
-            <Notifications onUnreadCountChange={setUnreadCount} />
-          )}
-          {active === "settings" && <Settings />}
-        </div>
-      </main>
-    </div>
-  );
+      {/* Content Area */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        {active === "dashboard" && <Dashboard />}
+        {active === "data" && <DataTab />}
+        {active === "feedback" && <Feedback />}
+        {active === "reports" && <Reports />}
+        {active === "users" && <Users />}
+        {active === "notifications" && (
+          <Notifications onUnreadCountChange={setUnreadCount} />
+        )}
+        {active === "settings" && <Settings />}
+      </div>
+    </main>
+  </div>
+);
+
 }
