@@ -40,11 +40,7 @@ export default function Login({ onLogin }) {
       <div className="bg-white p-8 rounded-2xl shadow-lg w-96 text-center">
         {/* ✅ Logo Section */}
         <div className="flex flex-col items-center mb-6">
-          <img
-            src="/logo.png"  // ✅ correct working path
-            alt="SmartCrop Logo"
-            className="w-24 h-24 mb-3 object-contain drop-shadow-sm"
-          />
+         
           <h2 className="text-2xl font-bold text-emerald-700">
             SMART CROP PLANNING
           </h2>
