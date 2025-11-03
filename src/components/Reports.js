@@ -25,10 +25,17 @@ export default function Reports() {
     return {
       _id: task._id,
       farmer:
-  typeof farm.userId === "object"
-    ? farm.userId.username || "Unknown"
+  farm && farm.userId
+    ? typeof farm.userId === "object"
+      ? farm.userId.username || "Unknown"
+      : "Unknown"
     : "Unknown",
-      barangay: farm.userId?.barangay || "—",
+     barangay:
+  farm && farm.userId
+    ? typeof farm.userId === "object"
+      ? farm.userId.barangay || "—"
+      : "—"
+    : "—",
       title: task.type || "Task",
       crop: task.crop || "—",
       kilos: Number(task.kilos) || 0,
