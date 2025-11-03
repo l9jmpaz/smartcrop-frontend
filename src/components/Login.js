@@ -1,6 +1,7 @@
+
 import React, { useState } from "react";
 import axios from "axios";
-import logo from "../assets/logo.png"; // ✅ adjust the path to where your image is
+// ✅ adjust the path to where your image is
 
 const baseUrl = "https://smartcrop-backend-in5e.onrender.com/";
 
@@ -42,15 +43,15 @@ export default function Login({ onLogin }) {
         
         {/* 🖼️ Logo Section */}
         <div className="flex flex-col items-center mb-6">
-          <img
-            src={logo}
-            alt="SmartCrop Logo"
-            className="w-20 h-20 mb-3 object-contain"
-          />
-          <h2 className="text-2xl font-bold text-center text-emerald-700">
-            Admin Login
-          </h2>
-        </div>
+  <img
+    src="/assets/logo.png"  // ✅ public path
+    alt="SmartCrop Logo"
+    className="w-24 h-24 mb-4 object-contain"
+  />
+  <h2 className="text-2xl font-bold text-center text-emerald-700">
+    Admin Login
+  </h2>
+</div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
