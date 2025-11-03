@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import {
   Search,
   UserPlus,
   Edit,
@@ -26,7 +36,7 @@ export default function Data() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("farmer");
   const [showModal, setShowModal] = useState(false);
-
+const [weatherRecords, setWeatherRecords] = useState([]);
   const [newFarmer, setNewFarmer] = useState({
     username: "",
     phone: "",
@@ -149,6 +159,17 @@ export default function Data() {
     if (activeTab === "farmer") fetchFarmers();
     if (activeTab === "crops") fetchCrops();
     if (activeTab === "weather") fetchWeather();
+    const fetchWeatherRecords = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/weather`);
+    if (res.data.success) {
+      setWeatherRecords(res.data.data);
+    }
+  } catch (err) {
+    console.error("❌ Error fetching weather data:", err);
+  }
+};
+fetchWeatherRecords();
   }, [activeTab]);
 
   // ✅ Hide admins + apply search
@@ -184,6 +205,7 @@ const filteredFarmers = farmers
 {activeTab === "farmer" && (
   <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
     <div className="flex justify-between items-center mb-4">
+      
       <h2 className="text-lg font-semibold text-gray-800">Farmers Data</h2>
       <button
         onClick={() => setShowModal(true)}
@@ -335,59 +357,112 @@ const filteredFarmers = farmers
   </div>
 )}
 
-{/* ☁️ Weather Tab */}
+{/* 🌤 WEATHER TAB */}
 {activeTab === "weather" && (
   <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-        <Cloud className="text-blue-500" /> Weather Data
-      </h2>
-      <button
-        onClick={fetchWeather}
-        className="flex items-center gap-2 text-emerald-700 text-sm hover:text-emerald-900 transition"
-      >
-        <RefreshCw size={16} /> Refresh
-      </button>
-    </div>
+    
+    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+      Weather Data
+    </h2>
 
-    {loading ? (
-      <p className="text-center text-gray-500 py-6">Loading weather...</p>
-    ) : !weather ? (
-      <p className="text-center text-gray-500 py-6">No data found</p>
-    ) : (
-      <div className="relative max-h-[65vh] overflow-y-auto rounded-lg border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-700">
-          <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
-            <Thermometer className="text-red-500" />
-            <div>
-              <p className="text-sm text-gray-500">Temperature</p>
-              <p className="font-semibold">{weather.temp || "—"} °C</p>
-            </div>
+    {/* Cards Section */}
+    {weatherRecords.length > 0 ? (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow-sm p-4 text-center border-l-4 border-blue-400">
+            <h3 className="text-gray-600 text-sm font-medium">Temperature</h3>
+            <p className="text-2xl font-bold text-blue-600">
+              
+              {weatherRecords[0].temperature?.toFixed(1)}°C
+            </p>
           </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
-            <Droplet className="text-blue-500" />
-            <div>
-              <p className="text-sm text-gray-500">Humidity</p>
-              <p className="font-semibold">{weather.humidity || "—"}%</p>
-            </div>
+          <div className="bg-white rounded-xl shadow-sm p-4 text-center border-l-4 border-emerald-500">
+            <h3 className="text-gray-600 text-sm font-medium">Humidity</h3>
+            <p className="text-2xl font-bold text-emerald-600">
+              {weatherRecords[0].humidity?.toFixed(0)}%
+            </p>
           </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm flex items-center gap-3">
-            <MapPin className="text-emerald-600" />
-            <div>
-              <p className="text-sm text-gray-500">Location</p>
-              <p className="font-semibold">{weather.location || "—"}</p>
-            </div>
-          </div>
-          <div className="col-span-3 text-sm text-gray-500 mt-4">
-            Last Sync:{" "}
-            <span className="font-medium text-gray-700">
-              {weather.lastSync
-                ? new Date(weather.lastSync).toLocaleString()
-                : "—"}
-            </span>
+          <div className="bg-white rounded-xl shadow-sm p-4 text-center border-l-4 border-yellow-500">
+            <h3 className="text-gray-600 text-sm font-medium">Rainfall</h3>
+            <p className="text-2xl font-bold text-yellow-600">
+              {weatherRecords[0].rainfall?.toFixed(1)} mm
+            </p>
           </div>
         </div>
-      </div>
+
+        {/* Chart */}
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6">
+          <h3 className="text-gray-700 font-semibold mb-2">
+            7-Day Weather Trend
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart
+              data={weatherRecords.slice(0, 7).reverse()}
+              margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(d) => new Date(d).toLocaleDateString()}
+              />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="temperature"
+                stroke="#3b82f6"
+                name="Temp (°C)"
+              />
+              <Line
+                type="monotone"
+                dataKey="humidity"
+                stroke="#10b981"
+                name="Humidity (%)"
+              />
+              <Line
+                type="monotone"
+                dataKey="rainfall"
+                stroke="#f59e0b"
+                name="Rain (mm)"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
+          <table className="w-full text-sm text-gray-700">
+            <thead className="bg-gray-100 text-gray-600 sticky top-0">
+              <tr>
+                <th className="p-2 text-left">Date</th>
+                <th className="p-2 text-left">Temperature (°C)</th>
+                <th className="p-2 text-left">Humidity (%)</th>
+                <th className="p-2 text-left">Rainfall (mm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weatherRecords.map((record, idx) => (
+                <tr
+                  key={idx}
+                  className="border-t hover:bg-gray-50 transition"
+                >
+                  <td className="p-2">
+                    {new Date(record.date).toLocaleDateString()}
+                  </td>
+                  <td className="p-2">{record.temperature?.toFixed(1)}</td>
+                  <td className="p-2">{record.humidity?.toFixed(0)}</td>
+                  <td className="p-2">{record.rainfall?.toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    ) : (
+      <p className="text-center text-gray-500 py-8">
+        No weather records found.
+      </p>
     )}
   </div>
 )}
