@@ -49,18 +49,22 @@ export default function DashboardReports() {
         }));
         setCropYields(yieldData);
 
-        // 2️⃣ Commonly Planted Crops
-        const cropCount = {};
-        farms.forEach((farm) => {
-          if (farm.lastYearCrop)
-            cropCount[farm.lastYearCrop] =
-              (cropCount[farm.lastYearCrop] || 0) + 1;
-        });
-        const freqData = Object.entries(cropCount).map(([name, value]) => ({
-          name,
-          value,
-        }));
-        setCropFrequency(freqData);
+        // 2️⃣ Commonly Planted Crops (from all tasks)
+const cropCount = {};
+farms.forEach((farm) => {
+  (farm.tasks || []).forEach((task) => {
+    if (task.crop && task.type?.toLowerCase().includes("plant")) {
+      const cropName = task.crop.trim() || "Unknown Crop";
+      cropCount[cropName] = (cropCount[cropName] || 0) + 1;
+    }
+  });
+});
+const freqData = Object.entries(cropCount).map(([name, value]) => ({
+  name,
+  value,
+}));
+setCropFrequency(freqData);
+
 
         // 3️⃣ Yield Trends by Month
         const monthly = {};
