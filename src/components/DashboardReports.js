@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -27,10 +27,11 @@ export default function DashboardReports() {
   const [weatherData, setWeatherData] = useState([]);
   const [recommendation, setRecommendation] = useState("");
 
+  const printRef = useRef();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🌾 Fetch farms & weather data
         const farmRes = await axios.get(`${baseUrl}/farm`);
         const weatherRes = await axios.get(`${baseUrl}/weather`);
         const farms = farmRes.data.farms || [];
@@ -51,22 +52,21 @@ export default function DashboardReports() {
         }));
         setCropYields(yieldData);
 
-        // 2️⃣ Commonly Planted Crops (from all tasks)
-const cropCount = {};
-farms.forEach((farm) => {
-  (farm.tasks || []).forEach((task) => {
-    if (task.crop && task.type?.toLowerCase().includes("plant")) {
-      const cropName = task.crop.trim() || "Unknown Crop";
-      cropCount[cropName] = (cropCount[cropName] || 0) + 1;
-    }
-  });
-});
-const freqData = Object.entries(cropCount).map(([name, value]) => ({
-  name,
-  value,
-}));
-setCropFrequency(freqData);
-
+        // 2️⃣ Commonly Planted Crops
+        const cropCount = {};
+        farms.forEach((farm) => {
+          (farm.tasks || []).forEach((task) => {
+            if (task.crop && task.type?.toLowerCase().includes("plant")) {
+              const cropName = task.crop.trim() || "Unknown Crop";
+              cropCount[cropName] = (cropCount[cropName] || 0) + 1;
+            }
+          });
+        });
+        const freqData = Object.entries(cropCount).map(([name, value]) => ({
+          name,
+          value,
+        }));
+        setCropFrequency(freqData);
 
         // 3️⃣ Yield Trends by Month
         const monthly = {};
@@ -87,17 +87,16 @@ setCropFrequency(freqData);
         }));
         setYieldTrends(trendData);
 
-        // 4️⃣ Weather vs Yield Correlation
+        // 4️⃣ Weather data correlation
+        setWeatherData(weather);
+
+        // 5️⃣ Recommendation
         const avgRain =
           weather.reduce((a, b) => a + (b.rainfall || 0), 0) /
           (weather.length || 1);
         const avgYield =
           yieldData.reduce((a, b) => a + b.kilos, 0) /
           (yieldData.length || 1);
-
-        setWeatherData(weather);
-
-        // 5️⃣ Smart Recommendation Logic
         if (avgRain > 100 && avgYield < 50)
           setRecommendation(
             "⚠️ High rainfall with low yield — consider better drainage or shorter-duration crops."
@@ -106,7 +105,6 @@ setCropFrequency(freqData);
           setRecommendation("✅ Great performance — maintain current crop schedule.");
         else
           setRecommendation("📈 Normal conditions — monitor upcoming weather trends.");
-
       } catch (err) {
         console.error("❌ Error generating reports:", err);
       }
@@ -115,162 +113,149 @@ setCropFrequency(freqData);
     fetchData();
   }, []);
 
+  // ⬇️ Export all data to Excel
   const handleExportExcel = () => {
-  const workbook = XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropYields), "Crop Yields");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropFrequency), "Common Crops");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(yieldTrends), "Yield Trends");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(weatherData), "Weather Data");
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, `SmartCrop_Reports_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
 
-  // 🧾 1️⃣ Crop Yields
-  const yieldSheet = XLSX.utils.json_to_sheet(cropYields);
-  XLSX.utils.book_append_sheet(workbook, yieldSheet, "Crop Yields");
-
-  // 🌾 2️⃣ Commonly Planted Crops
-  const cropSheet = XLSX.utils.json_to_sheet(cropFrequency);
-  XLSX.utils.book_append_sheet(workbook, cropSheet, "Common Crops");
-
-  // 📈 3️⃣ Yield Trends
-  const trendSheet = XLSX.utils.json_to_sheet(yieldTrends);
-  XLSX.utils.book_append_sheet(workbook, trendSheet, "Yield Trends");
-
-  // 🌦 4️⃣ Weather Data
-  const weatherSheet = XLSX.utils.json_to_sheet(weatherData);
-  XLSX.utils.book_append_sheet(workbook, weatherSheet, "Weather Data");
-
-  // 📋 Save as Excel File
-  const excelBuffer = XLSX.write(workbook, {
-    bookType: "xlsx",
-    type: "array",
-  });
-  const blob = new Blob([excelBuffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  saveAs(blob, `SmartCrop_Reports_${new Date().toISOString().slice(0, 10)}.xlsx`);
-};
+  // 🖨️ Print only graphs (not text)
+  const handlePrintGraphs = () => {
+    const printContent = printRef.current;
+    const win = window.open("", "", "width=1000,height=800");
+    win.document.write(`
+      <html>
+        <head>
+          <title>SmartCrop Graph Reports</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              background: white;
+              color: black;
+            }
+            h3 { color: #059669; margin-bottom: 10px; }
+            .chart-section { margin-bottom: 30px; }
+          </style>
+        </head>
+        <body>
+          <h2>📊 SmartCrop Analytical Graph Reports</h2>
+          ${printContent.innerHTML}
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  };
 
   const COLORS = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
   return (
     <div className="mt-10 p-6 bg-emerald-50 rounded-2xl shadow-sm">
-      <h2 className="text-2xl font-bold text-emerald-700 mb-4">
-        📊 Descriptive & Analytical Reports
-      </h2>
-<div className="flex justify-end mb-4">
-  <button
-    onClick={handleExportExcel}
-    className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-  >
-    ⬇️ Export to Excel
-  </button>
-</div>
-      {/* 1️⃣ Crop Yield Summary */}
-      <div className="mb-10">
-        <h3 className="font-semibold text-gray-700 mb-2">
-          1.4.1 Crop Yield Summary
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={cropYields}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="crop" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="kilos" fill="#10b981" />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold text-emerald-700">
+          📊 Descriptive & Analytical Reports
+        </h2>
+        <div className="flex gap-3">
+          <button
+            onClick={handlePrintGraphs}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            🖨️ Print Graphs
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+          >
+            ⬇️ Export to Excel
+          </button>
+        </div>
       </div>
 
-      {/* 2️⃣ Commonly Planted Crops */}
-      <div className="mb-10">
-        <h3 className="font-semibold text-gray-700 mb-2">
-          1.4.2 Most Commonly Planted Crops
-        </h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie
-              data={cropFrequency}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={100}
-              label
-            >
-              {cropFrequency.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
-                />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* 3️⃣ Yield Trends Over Time */}
-      <div className="mb-10">
-        <h3 className="font-semibold text-gray-700 mb-2">
-          1.4.3 Yield Trend Over Seasons
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={yieldTrends}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="yieldKg"
-              stroke="#059669"
-              strokeWidth={2}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* 4️⃣ Weather vs Yield Comparison */}
-      {weatherData.length > 0 && (
-        <div className="mb-10">
+      <div ref={printRef}>
+        {/* 1️⃣ Crop Yield Summary */}
+        <div className="chart-section mb-10">
           <h3 className="font-semibold text-gray-700 mb-2">
-            1.4.6 Weather (Rainfall) vs Yield Relationship
+            1.4.1 Crop Yield Summary
           </h3>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart>
+            <BarChart data={cropYields}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="date"
-                label={{ value: "Date", position: "insideBottomRight", offset: -5 }}
-              />
-              <YAxis yAxisId="left" label={{ value: "Rainfall (mm)", angle: -90, position: "insideLeft" }} />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                label={{ value: "Yield (kg)", angle: 90, position: "insideRight" }}
-              />
+              <XAxis dataKey="crop" />
+              <YAxis />
               <Tooltip />
               <Legend />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                data={weatherData}
-                dataKey="rainfall"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                name="Rainfall (mm)"
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                data={yieldTrends}
-                dataKey="yieldKg"
-                stroke="#10b981"
-                strokeWidth={2}
-                name="Yield (kg)"
-              />
+              <Bar dataKey="kilos" fill="#10b981" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 2️⃣ Common Crops */}
+        <div className="chart-section mb-10">
+          <h3 className="font-semibold text-gray-700 mb-2">
+            1.4.2 Most Commonly Planted Crops
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie data={cropFrequency} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                {cropFrequency.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 3️⃣ Yield Trend */}
+        <div className="chart-section mb-10">
+          <h3 className="font-semibold text-gray-700 mb-2">
+            1.4.3 Yield Trend Over Seasons
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={yieldTrends}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="yieldKg" stroke="#059669" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      )}
 
-      {/* 5️⃣ Recommendation Section */}
+        {/* 4️⃣ Weather vs Yield */}
+        {weatherData.length > 0 && (
+          <div className="chart-section mb-10">
+            <h3 className="font-semibold text-gray-700 mb-2">
+              1.4.6 Weather (Rainfall) vs Yield Relationship
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip />
+                <Legend />
+                <Line yAxisId="left" type="monotone" data={weatherData} dataKey="rainfall" stroke="#3b82f6" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" data={yieldTrends} dataKey="yieldKg" stroke="#10b981" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* 📈 Recommendation */}
       <div className="p-4 bg-white rounded-xl shadow-sm">
         <h3 className="font-semibold text-gray-700 mb-2">
           1.4.7 Recommendations for Optimal Planting
