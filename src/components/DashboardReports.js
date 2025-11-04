@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import {
   BarChart,
   Bar,
@@ -112,6 +114,36 @@ setCropFrequency(freqData);
 
     fetchData();
   }, []);
+
+  const handleExportExcel = () => {
+  const workbook = XLSX.utils.book_new();
+
+  // 🧾 1️⃣ Crop Yields
+  const yieldSheet = XLSX.utils.json_to_sheet(cropYields);
+  XLSX.utils.book_append_sheet(workbook, yieldSheet, "Crop Yields");
+
+  // 🌾 2️⃣ Commonly Planted Crops
+  const cropSheet = XLSX.utils.json_to_sheet(cropFrequency);
+  XLSX.utils.book_append_sheet(workbook, cropSheet, "Common Crops");
+
+  // 📈 3️⃣ Yield Trends
+  const trendSheet = XLSX.utils.json_to_sheet(yieldTrends);
+  XLSX.utils.book_append_sheet(workbook, trendSheet, "Yield Trends");
+
+  // 🌦 4️⃣ Weather Data
+  const weatherSheet = XLSX.utils.json_to_sheet(weatherData);
+  XLSX.utils.book_append_sheet(workbook, weatherSheet, "Weather Data");
+
+  // 📋 Save as Excel File
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+  const blob = new Blob([excelBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  saveAs(blob, `SmartCrop_Reports_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
 
   const COLORS = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
