@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import DashboardReports from "./DashboardReports";
 import axios from "axios";
 import {
   Gauge,
@@ -196,6 +197,10 @@ export default function Dashboard() {
             </table>
           </div>
         )}
+        
+      {/* 📊 Descriptive & Analytical Reports */}
+      <DashboardReports />
+
       </div>
     </div>
   );
