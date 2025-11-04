@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com/api";
+const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 
 export default function Data() {
   const [farmers, setFarmers] = useState([]);

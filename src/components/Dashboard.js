@@ -10,7 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com";
+const baseUrl = "https://smartcrop-backend-1.onrender.com";
 
 export default function Dashboard() {
   const [systemHealth, setSystemHealth] = useState("Loading...");

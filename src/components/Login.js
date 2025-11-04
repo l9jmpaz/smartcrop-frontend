@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com/";
+const baseUrl = "https://smartcrop-backend-1.onrender.com/";
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -38,7 +38,6 @@ export default function Login({ onLogin }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-96 text-center">
-        {/* ✅ Logo Section */}
         <div className="flex flex-col items-center mb-6">
          
           <h2 className="text-2xl font-bold text-emerald-700">

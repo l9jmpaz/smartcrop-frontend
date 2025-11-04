@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com"; // ✅ your live backend
+const baseUrl = "https://smartcrop-backend-1.onrender.com"; // ✅ your live backend
 
 export default function AdminLogin({ onLogin }) {
   const [username, setUsername] = useState("");

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com/api";
+const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 
 export default function Notifications({ onUnreadCountChange }) {
   const [notifications, setNotifications] = useState([]);

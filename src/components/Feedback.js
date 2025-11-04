@@ -9,7 +9,7 @@ import {
   X,
 } from "lucide-react";
 
-const baseUrl = "https://smartcrop-backend-in5e.onrender.com/api";
+const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 
 export default function Feedback() {
   const [feedback, setFeedback] = useState([]);
