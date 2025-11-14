@@ -216,7 +216,7 @@ export default function Data() {
       return toast.error("Phone must be 10–13 digits");
 
     try {
-      const res = await axios.post(`${baseUrl}/users, newFarmer`);
+      const res = await axios.post(`${baseUrl}/users`, newFarmer);
       setFarmers((prev) => [...prev, res.data.data]);
 
       toast.success("Farmer added!");
