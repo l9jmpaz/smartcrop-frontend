@@ -169,7 +169,7 @@ export default function Users() {
                         {u.username || "—"}
                       </td>
                       <td className="text-gray-600">
-                        {u.email || u.phone || "—"}
+                        {u.phone || "—"}
                       </td>
                       <td>
                         <span
