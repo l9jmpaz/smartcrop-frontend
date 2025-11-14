@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const baseUrl = "https://smartcrop-backend-1.onrender.com/";
+const baseUrl = "https://smartcrop-backend-1.onrender.com";
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -29,7 +29,7 @@ export default function Login({ onLogin }) {
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError("Login failed. Please check your credentials or try again later.");
+      setError("Login failed. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -38,8 +38,15 @@ export default function Login({ onLogin }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-96 text-center">
+        
+        {/* 🌾 Logo */}
         <div className="flex flex-col items-center mb-6">
-         
+          <img
+            src="/smart_crop_logo.png"
+            alt="SmartCrop Logo"
+            className="w-24 h-24 mb-3"
+          />
+
           <h2 className="text-2xl font-bold text-emerald-700">
             SMART CROP PLANNING
           </h2>
@@ -48,7 +55,7 @@ export default function Login({ onLogin }) {
           </p>
         </div>
 
-        {/* ✅ Login Form */}
+        {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
@@ -58,6 +65,7 @@ export default function Login({ onLogin }) {
             onChange={(e) => setUsername(e.target.value)}
             required
           />
+
           <input
             type="password"
             placeholder="Password"
@@ -66,7 +74,9 @@ export default function Login({ onLogin }) {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+
           {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <button
             type="submit"
             disabled={loading}
