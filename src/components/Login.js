@@ -42,9 +42,9 @@ export default function Login({ onLogin }) {
         {/* 🌾 Logo */}
         <div className="flex flex-col items-center mb-6">
           <img
-            src="/smart_crop_logo.png"
+            src="/smart_crop_logo.png?v=999"
             alt="SmartCrop Logo"
-            className="w-24 h-24 mb-3"
+            className="w-20 h-24 mb-3 object-contain"
           />
 
           <h2 className="text-2xl font-bold text-emerald-700">
