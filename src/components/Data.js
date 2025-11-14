@@ -103,7 +103,7 @@ export default function Data() {
   const fetchWeather = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${baseUrl}/ai/weather`);
+      const res = await axios.get(`${baseUrl}/weather`);
       setWeather(res.data || {});
     } catch (err) {
       toast.error("Failed to fetch weather data");
