@@ -164,7 +164,7 @@ export default function DashboardReports() {
     <div className="mt-10 p-6 bg-emerald-50 rounded-2xl shadow-sm">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-emerald-700">
-          📊 Descriptive & Analytical Reports
+          📊 Analytical Reports
         </h2>
         <div className="flex gap-3">
           <button
