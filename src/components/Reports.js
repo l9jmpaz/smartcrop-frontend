@@ -5,6 +5,8 @@ const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [search, setSearch] = useState("");
+
   const [crops, setCrops] = useState([]);
   const [weather, setWeather] = useState([]);
   const [reports, setReports] = useState([]);
@@ -14,6 +16,7 @@ export default function Reports() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch all farms
       const farmRes = await axios.get(`${baseUrl}/farm`);
       const farms = farmRes.data.farms || [];
 
@@ -30,12 +33,14 @@ export default function Reports() {
             ? farm.userId.barangay || "—"
             : "—";
 
+        const cropName = farm.selectedCrop || "—";
+
         return farm.tasks.map((task) => ({
           _id: task._id,
           farmer: farmerName,
           barangay: farmerBarangay,
           title: task.type || "Task",
-          crop: task.crop || "—",
+          crop: cropName,
           kilos: Number(task.kilos) || 0,
           date: new Date(task.date || task.createdAt || Date.now()),
           completed: !!task.completed,
@@ -44,16 +49,17 @@ export default function Reports() {
 
       setReports(allReports);
 
-      // ✅ Completed harvests
+      // Completed harvests
       const cropReports = allReports.filter(
         (r) =>
           r.title.toLowerCase().includes("harvest") &&
           r.kilos > 0 &&
           r.completed
       );
+
       setCrops(cropReports);
 
-      // ✅ Yield trend (month comparison)
+      // Yield trend
       const now = new Date();
       const thisMonth = now.getMonth();
       const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
@@ -81,7 +87,7 @@ export default function Reports() {
       }
       setYieldTrend(trend.toFixed(1));
 
-      // ✅ Weather data
+      // WEATHER DATA
       const weatherRes = await axios.get(`${baseUrl}/weather`);
       const records = weatherRes.data.data || [];
       setWeather(records);
@@ -96,7 +102,15 @@ export default function Reports() {
     fetchData();
   }, []);
 
-  // 🖨 Print only the report section
+  const filteredCrops = crops.filter((c) =>
+    c.farmer.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredReports = reports.filter((r) =>
+    r.farmer.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // PRINT HANDLER
   const handlePrint = () => {
     const printContents = document.getElementById("print-area").innerHTML;
     const originalContents = document.body.innerHTML;
@@ -111,6 +125,13 @@ export default function Reports() {
     window.location.reload();
   };
 
+  const avgRainfall =
+    weather.length > 0
+      ? (
+          weather.reduce((sum, w) => sum + (w.rainfall || 0), 0) / weather.length
+        ).toFixed(1)
+      : 0;
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full text-gray-500">
@@ -119,27 +140,31 @@ export default function Reports() {
     );
   }
 
-  const avgRainfall =
-    weather.length > 0
-      ? (
-          weather.reduce((sum, w) => sum + (w.rainfall || 0), 0) / weather.length
-        ).toFixed(1)
-      : 0;
-
   return (
     <div className="p-6">
-      {/* Header + Print Button */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-emerald-700">Reports</h2>
-        <button
-          onClick={handlePrint}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-        >
-          🖨️ Print / Download
-        </button>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            className="border px-3 py-2 rounded-lg text-sm"
+            placeholder="🔍 Search farmer..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+
+          <button
+            onClick={handlePrint}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+          >
+            🖨 Print / Download
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
+      {/* TABS */}
       <div className="flex space-x-4 mb-6 bg-emerald-50 rounded-full p-2 w-fit">
         {["overview", "crop", "weather"].map((tab) => (
           <button
@@ -156,15 +181,16 @@ export default function Reports() {
         ))}
       </div>
 
-      {/* PRINT CONTENT AREA */}
       <div id="print-area">
+        {/* ========================= OVERVIEW TAB ========================= */}
         {activeTab === "overview" && (
           <div>
+            {/* SUMMARY CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
-                <h3 className="font-semibold text-gray-600">Crop</h3>
+                <h3 className="font-semibold text-gray-600">Crop Reports</h3>
                 <p className="text-3xl font-bold text-emerald-700 mt-1">
-                  {crops.length}
+                  {filteredCrops.length}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
                   Farmers reporting this month
@@ -196,24 +222,27 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Recent Reports */}
+            {/* RECENT REPORTS */}
             <h3 className="text-lg font-semibold text-gray-700 mb-3">
               Recent Reports
             </h3>
+
             <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-600 border-b">
                     <th className="py-2">Report</th>
+                    <th className="py-2">Crop</th>
                     <th className="py-2">Date</th>
                     <th className="py-2">Farmer</th>
                     <th className="py-2">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reports.slice(0, 5).map((r) => (
+                  {filteredReports.slice(0, 10).map((r) => (
                     <tr key={r._id} className="border-b hover:bg-gray-50">
                       <td className="py-2">{r.title}</td>
+                      <td className="py-2">{r.crop}</td>
                       <td className="py-2">
                         {r.date.toLocaleDateString()}
                       </td>
@@ -227,9 +256,13 @@ export default function Reports() {
                       </td>
                     </tr>
                   ))}
-                  {reports.length === 0 && (
+
+                  {filteredReports.length === 0 && (
                     <tr>
-                      <td colSpan="4" className="text-center py-4 text-gray-500">
+                      <td
+                        colSpan="5"
+                        className="text-center py-4 text-gray-500"
+                      >
                         No reports found.
                       </td>
                     </tr>
@@ -240,11 +273,13 @@ export default function Reports() {
           </div>
         )}
 
+        {/* ========================= CROP TAB ========================= */}
         {activeTab === "crop" && (
           <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-700 mb-3">
               Crop Yield Data
             </h3>
+
             <table className="w-full text-sm">
               <thead className="border-b text-gray-600">
                 <tr>
@@ -254,16 +289,20 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody>
-                {crops.map((c) => (
+                {filteredCrops.map((c) => (
                   <tr key={c._id} className="border-b hover:bg-gray-50">
                     <td className="py-2">{c.farmer}</td>
                     <td className="py-2">{c.crop}</td>
                     <td className="py-2">{c.kilos}</td>
                   </tr>
                 ))}
-                {crops.length === 0 && (
+
+                {filteredCrops.length === 0 && (
                   <tr>
-                    <td colSpan="3" className="text-center py-4 text-gray-500">
+                    <td
+                      colSpan="3"
+                      className="text-center py-4 text-gray-500"
+                    >
                       No crop data found.
                     </td>
                   </tr>
@@ -273,18 +312,24 @@ export default function Reports() {
           </div>
         )}
 
+        {/* ========================= WEATHER TAB ========================= */}
         {activeTab === "weather" && (
           <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-700 mb-3">
               Weather Summary
             </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-white p-4 rounded-xl shadow">
-                <h4 className="font-medium text-gray-600">Average Rainfall</h4>
+                <h4 className="font-medium text-gray-600">
+                  Average Rainfall
+                </h4>
                 <p className="text-3xl font-bold text-emerald-700 mt-2">
                   {avgRainfall} mm
                 </p>
-                <p className="text-sm text-gray-500">This reporting period</p>
+                <p className="text-sm text-gray-500">
+                  This reporting period
+                </p>
               </div>
             </div>
 
@@ -298,7 +343,10 @@ export default function Reports() {
               </thead>
               <tbody>
                 {weather.map((w) => (
-                  <tr key={w._id} className="border-b hover:bg-gray-50">
+                  <tr
+                    key={w._id}
+                    className="border-b hover:bg-gray-50"
+                  >
                     <td className="py-2">
                       {new Date(w.date).toLocaleDateString()}
                     </td>
@@ -306,9 +354,13 @@ export default function Reports() {
                     <td className="py-2">{w.rainfall ?? "--"}</td>
                   </tr>
                 ))}
+
                 {weather.length === 0 && (
                   <tr>
-                    <td colSpan="3" className="text-center py-4 text-gray-500">
+                    <td
+                      colSpan="3"
+                      className="text-center py-4 text-gray-500"
+                    >
                       No weather data available.
                     </td>
                   </tr>
