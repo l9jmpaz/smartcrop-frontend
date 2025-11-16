@@ -410,8 +410,8 @@ export default function Data() {
                     <td className="py-2 px-3">{farmer.username}</td>
                     <td className="py-2 px-3">{farm.fieldName}</td>
                     <td className="py-2 px-3">
-                      {farm.lastYearCrop && farm.lastYearCrop !== "none"
-                        ? farm.lastYearCrop
+                      {farm.selectedCrop && farm.selectedCrop !== "none"
+                        ? farm.selectedCrop
                         : "—"}
                     </td>
                     <td className="py-2 px-3">
