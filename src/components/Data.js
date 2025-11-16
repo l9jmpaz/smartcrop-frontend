@@ -103,7 +103,7 @@ export default function Data() {
   const fetchWeather = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${baseUrl}/weather`);
+      const res = await axios.get(`${baseUrl}/ai/weather`);
       setWeather(res.data || {});
     } catch (err) {
       toast.error("Failed to fetch weather data");
@@ -359,75 +359,81 @@ export default function Data() {
             CROPS TAB
       ============================ */}
       {activeTab === "crops" && (
-        <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Leaf className="text-green-600" /> Crop Records
-            </h2>
+  <div className="bg-emerald-50/40 rounded-2xl shadow-sm p-6">
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <Leaf className="text-green-600" /> Crop Records
+      </h2>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={fetchCrops}
-                className="flex items-center gap-2 text-emerald-700 text-sm hover:text-emerald-900 transition"
-              >
-                <RefreshCw size={16} /> Refresh
-              </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={fetchFarmers} // 🔥 Refresh farmers to refresh crop list
+          className="flex items-center gap-2 text-emerald-700 text-sm hover:text-emerald-900 transition"
+        >
+          <RefreshCw size={16} /> Refresh
+        </button>
 
-              {/* Oversupply Button */}
-              <button
-                onClick={() => {
-                  fetchOversupply();
-                  setShowOversupplyModal(true);
-                }}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition"
-              >
-                <Settings size={16} /> Edit Oversupply Crops
-              </button>
-            </div>
-          </div>
+        <button
+          onClick={() => {
+            fetchOversupply();
+            setShowOversupplyModal(true);
+          }}
+          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition"
+        >
+          <Settings size={16} /> Edit Oversupply Crops
+        </button>
+      </div>
+    </div>
 
-          {loading ? (
-            <p className="text-center text-gray-500 py-6">Loading crops...</p>
-          ) : (
-            <div className="relative max-h-[65vh] overflow-y-auto rounded-lg border border-gray-200">
-              <table className="w-full text-sm text-gray-700">
-                <thead className="sticky top-0 bg-emerald-100 shadow-sm">
-                  <tr className="text-left border-b">
-                    <th className="py-2 px-3">Farmer Name</th>
-                    <th className="py-2 px-3">Field Name</th>
-                    <th className="py-2 px-3">Crop</th>
+    {loading ? (
+      <p className="text-center text-gray-500 py-6">Loading crop data...</p>
+    ) : (
+      <div className="relative max-h-[65vh] overflow-y-auto rounded-lg border border-gray-200">
+        <table className="w-full text-sm text-gray-700">
+          <thead className="sticky top-0 bg-emerald-100 shadow-sm">
+            <tr className="text-left border-b">
+              <th className="py-2 px-3">Farmer Name</th>
+              <th className="py-2 px-3">Field Name</th>
+              <th className="py-2 px-3">Crop</th>
+              <th className="py-2 px-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {farmers.map((farmer) =>
+              farmer.farms
+                ?.filter((farm) => farm.fieldName)
+                .map((farm) => (
+                  <tr
+                    key={farm._id}
+                    className="border-b hover:bg-gray-100 transition"
+                  >
+                    <td className="py-2 px-3">{farmer.username}</td>
+                    <td className="py-2 px-3">{farm.fieldName}</td>
+                    <td className="py-2 px-3">
+                      {farm.lastYearCrop && farm.lastYearCrop !== "none"
+                        ? farm.lastYearCrop
+                        : "—"}
+                    </td>
+                    <td className="py-2 px-3">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          farm.archived
+                            ? "bg-gray-200 text-gray-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {farm.archived ? "Completed" : "Active"}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {farmers
-                    .filter((f) => Array.isArray(f.farms) && f.farms.length > 0)
-                    .map((f) =>
-                      f.farms
-                        .filter(
-                          (farm) =>
-                            farm.fieldName &&
-                            farm.lastYearCrop &&
-                            !["none", "n/a", ""].includes(
-                              farm.lastYearCrop.toLowerCase()
-                            )
-                        )
-                        .map((farm) => (
-                          <tr
-                            key={farm._id}
-                            className="border-b hover:bg-gray-100 transition"
-                          >
-                            <td className="py-2 px-3">{f.username}</td>
-                            <td className="py-2 px-3">{farm.fieldName}</td>
-                            <td className="py-2 px-3">{farm.lastYearCrop}</td>
-                          </tr>
-                        ))
-                    )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)}
 
       {/* ===========================
             WEATHER TAB
