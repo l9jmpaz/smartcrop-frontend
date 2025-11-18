@@ -550,14 +550,14 @@ const handleAddFarmer = async (e) => {
 
               <tbody>
                 {farmers.flatMap((f) =>
-                  f.farms
+  f.farms
   ?.filter((fm) => {
-    // include ALL fields (active + completed)
-    if (!fm.selectedCrop) return false;
-
+    // Show all fields if crop filter = all
     if (cropFilter === "all") return true;
 
-    // crop filter
+    // Only filter by crop if selectedCrop exists
+    if (!fm.selectedCrop) return false;
+
     return fm.selectedCrop.toLowerCase() === cropFilter.toLowerCase();
   })
                      .map((fm) => (
