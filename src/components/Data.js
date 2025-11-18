@@ -551,13 +551,15 @@ const handleAddFarmer = async (e) => {
               <tbody>
                 {farmers.flatMap((f) =>
                   f.farms
-                    ?.filter((fm) => {
-  if (!fm.selectedCrop) return false;
+  ?.filter((fm) => {
+    // include ALL fields (active + completed)
+    if (!fm.selectedCrop) return false;
 
-  if (cropFilter === "all") return true;
+    if (cropFilter === "all") return true;
 
-  return fm.selectedCrop.toLowerCase() === cropFilter.toLowerCase();
-})
+    // crop filter
+    return fm.selectedCrop.toLowerCase() === cropFilter.toLowerCase();
+  })
                      .map((fm) => (
                       <tr key={fm._id} className="border-b hover:bg-gray-50">
                         <td className="p-2">{f.username}</td>
