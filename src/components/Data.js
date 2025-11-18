@@ -109,7 +109,7 @@ farmsWithUsers.forEach((farmer) => {
     })
     .filter((kg) => kg !== null);
 
-  if (harvests.length < 1) {
+  if (harvests.length < 2) {
     farmer.yieldTrend = 0;
     farmer.yieldTrendLabel = "0.0%";
     return;
