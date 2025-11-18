@@ -262,19 +262,26 @@ setCropFilterList(cList);
   /* ============================================================
      FILTER FARMERS
   ============================================================ */
-  const filteredFarmers = farmers.filter((f) => {
+ const filteredFarmers = farmers.filter((f) => {
+  // 🚫 1. REMOVE ADMINS
+  if (String(f.role || "").toLowerCase() === "admin") return false;
+
+  // 🔍 2. SEARCH FILTER
   const matchSearch = f.username
     ?.toLowerCase()
     .includes(search.toLowerCase());
-
+  
   if (!matchSearch) return false;
 
+  // 🌾 3. CROP FILTER (unchanged)
   if (cropFilter === "all") return true;
 
   return f.farms.some((field) => {
     if (!field.archived || !field.completedAt) return false;
+
     const d = new Date(field.completedAt);
     const key = `${field.selectedCrop}_${d.getMonth() + 1}_${d.getFullYear()}`;
+
     return key === cropFilter;
   });
 });
