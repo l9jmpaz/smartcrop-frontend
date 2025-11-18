@@ -773,96 +773,92 @@ setCropFilterList(cList);
       ============================================================ */}
       {showAddModal && (
   <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-    <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow relative">
+    <div className="bg-white p-5 rounded-2xl w-full max-w-sm shadow relative">
+
       {/* Close Button */}
       <button
         className="absolute top-3 right-3 text-gray-500"
         onClick={() => setShowAddModal(false)}
       >
-        <X size={20} />
+        <X size={18} />
       </button>
 
-      <h3 className="text-2xl font-semibold mb-6 text-center">
-        Register New Farmer
+      {/* Title */}
+      <h3 className="text-xl font-semibold mb-4 text-center">
+        Register Farmer
       </h3>
 
-      <form onSubmit={handleAddFarmer} className="space-y-5">
+      <form onSubmit={handleAddFarmer} className="space-y-4">
 
-        {/* Name */}
+        {/* Full Name */}
         <div>
-          <label className="block mb-1 font-medium">Full Name</label>
+          <label className="block mb-1 font-medium text-sm">Full Name</label>
           <input
-            type="text"
             required
             value={newFarmer.username}
             onChange={(e) =>
               setNewFarmer({ ...newFarmer, username: e.target.value })
             }
-            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
             placeholder="Enter full name"
           />
         </div>
 
         {/* Email */}
         <div>
-          <label className="block mb-1 font-medium">Email</label>
+          <label className="block mb-1 font-medium text-sm">Email</label>
           <input
             type="email"
-            required
             value={newFarmer.email}
             onChange={(e) =>
               setNewFarmer({ ...newFarmer, email: e.target.value })
             }
-            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
             placeholder="example@gmail.com"
           />
         </div>
 
-        {/* Barangay Dropdown */}
+        {/* Barangay */}
         <div>
-          <label className="block mb-1 font-medium">Barangay</label>
+          <label className="block mb-1 font-medium text-sm">Barangay</label>
           <select
             required
             value={newFarmer.barangay}
             onChange={(e) =>
               setNewFarmer({ ...newFarmer, barangay: e.target.value })
             }
-            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
           >
             <option value="">Select Barangay</option>
 
+            {/* --- Auto Fill Barangay List --- */}
             {[
-              "Altura Bata","Altura Matanda","Altura South","Ambulong",
-              "Bagbag","Bagumbayan","Balele","Banadero","Banjo East",
-              "Banjo West (Banjo Laurel)","Bilog-bilog","Boot","Cale","Darasa",
-              "Gonzales","Hidalgo","Janopol","Janopol Oriental","Laurel",
-              "Luyos","Mabini","Malaking Pulo","Maria Paz","Maugat",
-              "Montaña (Ik-ik)","Natatas","Pagaspas","Pantay Bata",
-              "Pantay Matanda","Poblacion 1","Poblacion 2","Poblacion 3",
-              "Poblacion 4","Poblacion 5","Poblacion 6","Poblacion 7",
-              "Sala","Sambat","San Jose","Santol","Santor","Sulpoc",
-              "Suplang","Talaga","Tinurik","Trapiche","Wawa"
+              "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan","Balele",
+              "Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog","Boot","Cale","Darasa",
+              "Gonzales","Hidalgo","Janopol","Janopol Oriental","Laurel","Luyos","Mabini","Malaking Pulo",
+              "Maria Paz","Maugat","Montaña (Ik-ik)","Natatas","Pagaspas","Pantay Bata","Pantay Matanda",
+              "Poblacion 1","Poblacion 2","Poblacion 3","Poblacion 4","Poblacion 5","Poblacion 6",
+              "Poblacion 7","Sala","Sambat","San Jose","Santol","Santor","Sulpoc","Suplang","Talaga",
+              "Tinurik","Trapiche","Wawa", "Ulango"
             ].map((b, i) => (
               <option key={i} value={b}>{b}</option>
             ))}
           </select>
         </div>
 
-        {/* Phone Number */}
+        {/* Phone */}
         <div>
-          <label className="block mb-1 font-medium">Phone Number</label>
-          <div className="flex items-center border rounded-xl bg-gray-50 p-3 focus-within:ring-2 focus-within:ring-emerald-500">
-            <span className="text-gray-600 mr-2">+63</span>
+          <label className="block mb-1 font-medium text-sm">Phone Number</label>
+          <div className="flex items-center border rounded-lg bg-gray-50 p-2.5">
+            <span className="text-gray-600 pr-2 text-sm">+63</span>
             <input
-              type="text"
+              type="number"
               required
-              maxLength="10"
               value={newFarmer.phone}
-              onChange={(e) => {
-                const v = e.target.value.replace(/\D/g, ""); // numbers only
-                setNewFarmer({ ...newFarmer, phone: v });
-              }}
-              className="flex-1 outline-none bg-transparent"
+              onChange={(e) =>
+                setNewFarmer({ ...newFarmer, phone: e.target.value })
+              }
+              className="w-full bg-gray-50 outline-none text-sm"
               placeholder="9123456789"
             />
           </div>
@@ -870,7 +866,7 @@ setCropFilterList(cList);
 
         {/* Password */}
         <div>
-          <label className="block mb-1 font-medium">Password</label>
+          <label className="block mb-1 font-medium text-sm">Password</label>
           <input
             type="password"
             required
@@ -878,14 +874,14 @@ setCropFilterList(cList);
             onChange={(e) =>
               setNewFarmer({ ...newFarmer, password: e.target.value })
             }
-            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
             placeholder="Enter password"
           />
         </div>
 
         {/* Confirm Password */}
         <div>
-          <label className="block mb-1 font-medium">Confirm Password</label>
+          <label className="block mb-1 font-medium text-sm">Confirm Password</label>
           <input
             type="password"
             required
@@ -893,15 +889,15 @@ setCropFilterList(cList);
             onChange={(e) =>
               setNewFarmer({ ...newFarmer, confirmPassword: e.target.value })
             }
-            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
             placeholder="Repeat password"
           />
         </div>
 
-        {/* Save Button */}
+        {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-emerald-600 text-white p-3 rounded-xl text-lg font-medium"
+          className="w-full bg-emerald-600 text-white p-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
         >
           Add Farmer
         </button>
