@@ -10,6 +10,16 @@ import {
   RefreshCw,
   Leaf,
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from "recharts";
 
 import toast, { Toaster } from "react-hot-toast";
 
