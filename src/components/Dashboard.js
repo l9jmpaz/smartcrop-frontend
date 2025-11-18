@@ -79,7 +79,7 @@ export default function Dashboard() {
 
       // Weather
       const weatherRes = await axios
-        .get(`${baseUrl}/api/ai/weather`)
+        .get(`${baseUrl}/api/weather`)
         .catch(() => ({ data: {} }));
 
       setWeatherSync(
