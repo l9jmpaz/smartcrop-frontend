@@ -99,6 +99,7 @@ const [cropFilterList, setCropFilterList] = useState([]);
       // ----- CALCULATE YIELD TREND -----
 farmsWithUsers.forEach((farmer) => {
   const completed = farmer.farms.filter((f) => f.archived);
+
   const harvests = completed
     .map((f) => {
       const h = f.tasks?.find((t) =>
@@ -108,7 +109,7 @@ farmsWithUsers.forEach((farmer) => {
     })
     .filter((kg) => kg !== null);
 
-  if (harvests.length < 2) {
+  if (harvests.length < 1) {
     farmer.yieldTrend = 0;
     farmer.yieldTrendLabel = "0.0%";
     return;
