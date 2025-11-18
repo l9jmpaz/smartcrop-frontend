@@ -6,49 +6,19 @@ import {
   UserPlus,
   Edit,
   Trash2,
-  User,
-  Leaf,
-  RefreshCw,
   X,
-  BarChart2,
-  Eye,
-  FileDown,
+  RefreshCw,
+  Leaf,
 } from "lucide-react";
 
 import toast, { Toaster } from "react-hot-toast";
 
 const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 
-// ---------------------------
-// 🔧 CSV EXPORT (PURE JS)
-// ---------------------------
-const exportToCSV = (filename, rows) => {
-  if (!rows || rows.length === 0) {
-    alert("No data to export.");
-    return;
-  }
-
-  const headers = Object.keys(rows[0]).join(",");
-  const data = rows
-    .map((row) =>
-      Object.values(row)
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(",")
-    )
-    .join("\n");
-
-  const csv = headers + "\n" + data;
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-};
-
 export default function Data() {
   const [farmers, setFarmers] = useState([]);
   const [weatherRecords, setWeatherRecords] = useState([]);
+  const [yieldRecords, setYieldRecords] = useState([]);
 
   const [activeTab, setActiveTab] = useState("farmer");
   const [search, setSearch] = useState("");
@@ -56,10 +26,11 @@ export default function Data() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [showCropModal, setShowCropModal] = useState(false);
+  const [showCropViewModal, setShowCropViewModal] = useState(false);
 
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [selectedFarmerFields, setSelectedFarmerFields] = useState([]);
+
   const [selectedCropField, setSelectedCropField] = useState(null);
 
   const [newFarmer, setNewFarmer] = useState({
@@ -69,13 +40,35 @@ export default function Data() {
     barangay: "",
   });
 
-  // ---------------------------
-  // 📌 FETCH FARMERS + FARMS
-  // ---------------------------
+  /* ============================================================
+     EXPORT CSV (PURE JAVASCRIPT)
+  ============================================================ */
+  const exportCSV = (filename, rows) => {
+    if (!rows || rows.length === 0) return;
+
+    let csv = "";
+    const headers = Object.keys(rows[0]).join(",");
+    csv += headers + "\n";
+
+    rows.forEach((row) => {
+      csv += Object.values(row)
+        .map((v) => `"${String(v).replace(/"/g, "'")}"`)
+        .join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  };
+
+  /* ============================================================
+     FETCH FARMERS + FIELDS + YIELDS
+  ============================================================ */
   const fetchFarmers = async () => {
     try {
       setLoading(true);
-
       const usersRes = await axios.get(`${baseUrl}/users`);
       const users = usersRes.data?.data || [];
 
@@ -92,15 +85,15 @@ export default function Data() {
 
       setFarmers(farmsWithUsers);
     } catch {
-      toast.error("Failed to fetch farmers.");
+      toast.error("Failed to load farmers.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------------------
-  // 🌦 FETCH WEATHER
-  // ---------------------------
+  /* ============================================================
+     FETCH WEATHER
+  ============================================================ */
   const fetchWeatherRecords = async () => {
     try {
       const res = await axios.get(`${baseUrl}/weather`);
@@ -110,12 +103,23 @@ export default function Data() {
     }
   };
 
-  // ---------------------------
-  // ❌ DELETE FARMER
-  // ---------------------------
+  /* ============================================================
+     FETCH YIELD RECORDS
+  ============================================================ */
+  const fetchYieldRecords = async () => {
+    try {
+      const res = await axios.get(`${baseUrl}/yields`);
+      if (res.data.success) setYieldRecords(res.data.data);
+    } catch {
+      toast.error("Failed to load yield data");
+    }
+  };
+
+  /* ============================================================
+     DELETE FARMER
+  ============================================================ */
   const deleteFarmer = async (id) => {
     if (!window.confirm("Delete this farmer?")) return;
-
     try {
       await axios.delete(`${baseUrl}/users/${id}`);
       setFarmers((prev) => prev.filter((f) => f._id !== id));
@@ -125,9 +129,9 @@ export default function Data() {
     }
   };
 
-  // ---------------------------
-  // ✏ EDIT FARMER
-  // ---------------------------
+  /* ============================================================
+     EDIT FARMER
+  ============================================================ */
   const editFarmer = async (id, farmer) => {
     const username = prompt("Enter new name:", farmer.username);
     const barangay = prompt("Enter new barangay:", farmer.barangay);
@@ -141,23 +145,19 @@ export default function Data() {
       });
 
       setFarmers((prev) =>
-        prev.map((f) =>
-          f._id === id ? { ...f, ...res.data.data } : f
-        )
+        prev.map((f) => (f._id === id ? { ...f, ...res.data.data } : f))
       );
-
       toast.success("Updated successfully.");
     } catch {
-      toast.error("Update failed.");
+      toast.error("Failed to update.");
     }
   };
 
-  // ---------------------------
-  // ➕ ADD NEW FARMER
-  // ---------------------------
+  /* ============================================================
+     ADD FARMER
+  ============================================================ */
   const handleAddFarmer = async (e) => {
     e.preventDefault();
-
     try {
       const res = await axios.post(`${baseUrl}/users`, newFarmer);
       setFarmers((prev) => [...prev, res.data.data]);
@@ -176,66 +176,49 @@ export default function Data() {
     }
   };
 
-  // ---------------------------
-  // 🔍 VIEW FARMER DETAILS
-  // ---------------------------
+  /* ============================================================
+     FARMER VIEW DETAILS
+  ============================================================ */
   const openDetailsModal = (farmer) => {
     setSelectedFarmer(farmer);
     setSelectedFarmerFields(farmer.farms || []);
     setShowViewModal(true);
   };
 
-  // ---------------------------
-  // 🔍 VIEW CROP DETAILS
-  // ---------------------------
-  const openCropModal = (field, farmer) => {
-    setSelectedCropField({
-      ...field,
-      farmerName: farmer.username,
-      barangay: farmer.barangay,
-    });
-    setShowCropModal(true);
+  /* ============================================================
+     CROPS VIEW DETAILS
+  ============================================================ */
+  const openCropDetails = (farm, farmer) => {
+    setSelectedCropField({ ...farm, farmer });
+    setShowCropViewModal(true);
   };
 
-  // ---------------------------
-  // 📊 YIELD TREND (Increase/Decrease)
-  // ---------------------------
-  const calculateYieldTrend = (farmer) => {
-    const completed = farmer.farms
-      ?.filter((f) => f.archived)
-      .map((f) => {
-        const harvestTask = f.tasks?.find((t) => t.type === "Harvesting");
-        return harvestTask?.kilos || 0;
-      });
-
-    if (!completed || completed.length < 2) return "Unknown";
-
-    const latest = completed[completed.length - 1];
-    const previous = completed[completed.length - 2];
-
-    if (latest > previous) return "Increasing";
-    if (latest < previous) return "Decreasing";
-    return "Stable";
-  };
-
-  // ---------------------------
-  // INITIAL LOAD
-  // ---------------------------
+  /* ============================================================
+     LOAD ON TAB CHANGE
+  ============================================================ */
   useEffect(() => {
     fetchFarmers();
     fetchWeatherRecords();
+    fetchYieldRecords();
   }, [activeTab]);
 
+  /* ============================================================
+     FILTER FARMERS
+  ============================================================ */
   const filteredFarmers = farmers.filter(
     (f) =>
       (!f.role || f.role !== "admin") &&
-      f.username.toLowerCase().includes(search.toLowerCase())
+      f.username?.toLowerCase().includes(search.toLowerCase())
   );
-return (
+
+  /* ============================================================
+     UI START
+  ============================================================ */
+  return (
     <div className="p-8 bg-gray-50 min-h-screen font-inter relative">
       <Toaster position="top-right" />
 
-      {/* -------------------- TABS -------------------- */}
+      {/* Tabs */}
       <div className="flex space-x-6 mb-6">
         {["farmer", "crops", "weather"].map((tab) => (
           <button
@@ -253,7 +236,7 @@ return (
       </div>
 
       {/* ============================================================
-          FARMERS TAB
+          FARMERS TAB (UPDATED & CLEAN)
       ============================================================ */}
       {activeTab === "farmer" && (
         <div className="bg-white rounded-xl p-6 shadow">
@@ -263,20 +246,19 @@ return (
             <div className="flex gap-3">
               <button
                 onClick={() =>
-                  exportToCSV(
+                  exportCSV(
                     "farmers.csv",
                     filteredFarmers.map((f) => ({
                       Name: f.username,
                       Phone: f.phone || "—",
                       Email: f.email || "—",
-                      Barangay: f.barangay,
-                      YieldTrend: calculateYieldTrend(f),
+                      Barangay: f.barangay || "—",
                     }))
                   )
                 }
                 className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded-md"
               >
-                <FileDown size={16} /> Export
+                Export
               </button>
 
               <button
@@ -298,7 +280,6 @@ return (
             />
           </div>
 
-          {/* Farmer Table */}
           {!loading ? (
             <div className="relative max-h-[65vh] overflow-y-auto border rounded-lg">
               <table className="w-full text-sm">
@@ -307,7 +288,6 @@ return (
                     <th className="p-2">Name</th>
                     <th className="p-2">Phone</th>
                     <th className="p-2">Email</th>
-                    <th className="p-2">Yield Trend</th>
                     <th className="p-2 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -319,24 +299,12 @@ return (
                       <td className="p-2">{f.phone || "—"}</td>
                       <td className="p-2">{f.email || "—"}</td>
 
-                      <td
-                        className={`p-2 font-medium ${
-                          calculateYieldTrend(f) === "Increasing"
-                            ? "text-green-600"
-                            : calculateYieldTrend(f) === "Decreasing"
-                            ? "text-red-600"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {calculateYieldTrend(f)}
-                      </td>
-
                       <td className="p-2 text-right space-x-3">
                         <button
                           onClick={() => openDetailsModal(f)}
                           className="text-green-700"
                         >
-                          View
+                          View Details
                         </button>
 
                         <button
@@ -363,9 +331,8 @@ return (
           )}
         </div>
       )}
-
       {/* ============================================================
-          CROPS TAB — STATUS + VIEW DETAILS + EXPORT
+          CROPS TAB — WITH STATUS + VIEW DETAILS + EXPORT
       ============================================================ */}
       {activeTab === "crops" && (
         <div className="bg-white rounded-xl p-6 shadow">
@@ -375,24 +342,23 @@ return (
             </h2>
 
             <div className="flex gap-3">
-              {/* Export */}
               <button
-                onClick={() =>
-                  exportToCSV(
-                    "crops.csv",
-                    farmers.flatMap((farmer) =>
-                      farmer.farms.map((farm) => ({
-                        Farmer: farmer.username,
-                        FieldName: farm.fieldName,
-                        Crop: farm.selectedCrop || "",
-                        Status: farm.archived ? "Completed" : "Active",
+                onClick={() => {
+                  const rows = farmers.flatMap((f) =>
+                    f.farms
+                      ?.filter((fm) => fm.selectedCrop && fm.selectedCrop.trim() !== "")
+                      .map((fm) => ({
+                        Farmer: f.username,
+                        Field: fm.fieldName,
+                        Crop: fm.selectedCrop,
+                        Status: fm.archived ? "Completed" : "Active",
                       }))
-                    )
-                  )
-                }
+                  );
+                  exportCSV("crops.csv", rows);
+                }}
                 className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded-md"
               >
-                <FileDown size={16} /> Export
+                Export
               </button>
 
               <button
@@ -409,41 +375,47 @@ return (
               <thead className="bg-emerald-100 sticky top-0">
                 <tr>
                   <th className="p-2">Farmer</th>
-                  <th className="p-2">Field Name</th>
+                  <th className="p-2">Field</th>
                   <th className="p-2">Crop</th>
                   <th className="p-2">Status</th>
-                  <th className="p-2 text-right">Action</th>
+                  <th className="p-2 text-right">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {farmers.flatMap((f) =>
-                  f.farms.map((farm) => (
-                    <tr key={farm._id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">{f.username}</td>
-                      <td className="p-2">{farm.fieldName}</td>
-                      <td className="p-2">{farm.selectedCrop || "—"}</td>
+                  f.farms
+                    ?.filter(
+                      (fm) =>
+                        fm.selectedCrop && fm.selectedCrop.trim() !== ""
+                    )
+                    .map((fm) => (
+                      <tr key={fm._id} className="border-b hover:bg-gray-50">
+                        <td className="p-2">{f.username}</td>
+                        <td className="p-2">{fm.fieldName}</td>
+                        <td className="p-2">{fm.selectedCrop}</td>
+                        <td className="p-2">
+                          {fm.archived ? (
+                            <span className="text-red-600 font-medium">
+                              Completed
+                            </span>
+                          ) : (
+                            <span className="text-green-600 font-medium">
+                              Active
+                            </span>
+                          )}
+                        </td>
 
-                      <td
-                        className={`p-2 font-medium ${
-                          farm.archived
-                            ? "text-red-600"
-                            : "text-green-600"
-                        }`}
-                      >
-                        {farm.archived ? "Completed" : "Active"}
-                      </td>
-
-                      <td className="p-2 text-right">
-                        <button
-                          onClick={() => openCropModal(farm, f)}
-                          className="text-blue-600 flex items-center gap-1"
-                        >
-                          <Eye size={16} /> View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        <td className="p-2 text-right">
+                          <button
+                            onClick={() => openCropDetails(fm, f)}
+                            className="text-blue-700"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                 )}
               </tbody>
             </table>
@@ -452,35 +424,109 @@ return (
       )}
 
       {/* ============================================================
-          WEATHER TAB — USING BACKEND WEATHER API
+          WEATHER TAB — WEATHER + YIELD COMPARISON INCLUDED
       ============================================================ */}
       {activeTab === "weather" && (
         <div className="bg-white rounded-xl p-6 shadow">
-          <h2 className="text-lg font-semibold mb-4">Weather Data</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            Weather & Yield Comparison
+          </h2>
 
           {weatherRecords.length > 0 ? (
             <>
+              {/* Weather Summary */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-blue-100 p-4 rounded-xl text-center">
                   <p className="text-sm text-gray-600">Temperature</p>
                   <h2 className="text-xl font-bold text-blue-700">
-                    {weatherRecords[0].temperature}°C
+                    {weatherRecords[0].temperature?.toFixed(1)}°C
                   </h2>
                 </div>
 
                 <div className="bg-green-100 p-4 rounded-xl text-center">
                   <p className="text-sm text-gray-600">Humidity</p>
                   <h2 className="text-xl font-bold text-green-700">
-                    {weatherRecords[0].humidity}%
+                    {weatherRecords[0].humidity?.toFixed(0)}%
                   </h2>
                 </div>
 
                 <div className="bg-yellow-100 p-4 rounded-xl text-center">
                   <p className="text-sm text-gray-600">Rainfall</p>
                   <h2 className="text-xl font-bold text-yellow-700">
-                    {weatherRecords[0].rainfall} mm
+                    {weatherRecords[0].rainfall?.toFixed(1)} mm
                   </h2>
                 </div>
+              </div>
+
+              {/* WEATHER + YIELD GRAPH */}
+              <div className="w-full bg-gray-50 p-4 rounded-xl mb-6">
+                <h3 className="text-md font-semibold mb-3">
+                  Temperature vs Yield Trend
+                </h3>
+
+                <div className="space-y-3">
+                  {/* TEMP GRAPH */}
+                  <div className="w-full h-48 border rounded-lg p-2 bg-white">
+                    <h4 className="text-sm font-medium text-blue-700 mb-1">
+                      Temperature (°C)
+                    </h4>
+
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={weatherRecords.slice(0, 12).reverse()}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line dataKey="temperature" stroke="#3b82f6" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* YIELD GRAPH */}
+                  <div className="w-full h-48 border rounded-lg p-2 bg-white">
+                    <h4 className="text-sm font-medium text-green-700 mb-1">
+                      Yield (kg)
+                    </h4>
+
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={yieldRecords.slice(0, 12).reverse()}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line dataKey="yield" stroke="#10b981" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Weather Table */}
+              <div className="mt-6">
+                <table className="w-full text-sm border">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="p-2">Date</th>
+                      <th className="p-2">Temp</th>
+                      <th className="p-2">Humidity</th>
+                      <th className="p-2">Rainfall</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weatherRecords.map((w) => (
+                      <tr key={w._id} className="border-b">
+                        <td className="p-2">
+                          {new Date(w.date).toLocaleDateString()}
+                        </td>
+                        <td className="p-2">{w.temperature?.toFixed(1)}</td>
+                        <td className="p-2">{w.humidity?.toFixed(0)}%</td>
+                        <td className="p-2">{w.rainfall?.toFixed(1)} mm</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </>
           ) : (
@@ -508,20 +554,22 @@ return (
             <p><strong>Phone:</strong> {selectedFarmer.phone || "—"}</p>
             <p><strong>Email:</strong> {selectedFarmer.email || "—"}</p>
             <p><strong>Barangay:</strong> {selectedFarmer.barangay || "—"}</p>
-            <p><strong>Yield Trend:</strong> {calculateYieldTrend(selectedFarmer)}</p>
 
-            <h4 className="text-md font-semibold mt-4 mb-2">Fields</h4>
+            <h4 className="text-md font-semibold mt-4 mb-2">Fields:</h4>
 
             {selectedFarmerFields.length === 0 ? (
-              <p className="text-gray-500">No fields found.</p>
+              <p className="text-gray-500">No fields.</p>
             ) : (
               <ul className="space-y-2">
-                {selectedFarmerFields.map((field) => (
-                  <li key={field._id} className="border p-2 rounded bg-gray-50">
-                    <p><strong>Field:</strong> {field.fieldName}</p>
-                    <p><strong>Crop:</strong> {field.selectedCrop}</p>
-                    <p><strong>Status:</strong> {field.archived ? "Completed" : "Active"}</p>
-                    <p><strong>Size:</strong> {field.fieldSize} ha</p>
+                {selectedFarmerFields.map((f) => (
+                  <li key={f._id} className="border p-2 rounded bg-gray-50">
+                    <p><strong>Field:</strong> {f.fieldName}</p>
+                    <p><strong>Crop:</strong> {f.selectedCrop || "—"}</p>
+                    <p><strong>Size:</strong> {f.fieldSize} ha</p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      {f.archived ? "Completed" : "Active"}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -531,45 +579,35 @@ return (
       )}
 
       {/* ============================================================
-          CROP VIEW MODAL
+          CROP DETAILS MODAL — CLEAN VERSION
       ============================================================ */}
-      {showCropModal && selectedCropField && (
+      {showCropViewModal && selectedCropField && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow relative">
             <button
               className="absolute top-3 right-3 text-gray-500"
-              onClick={() => setShowCropModal(false)}
+              onClick={() => setShowCropViewModal(false)}
             >
               <X size={18} />
             </button>
 
             <h3 className="text-lg font-semibold mb-3">Crop Details</h3>
 
-            <p><strong>Farmer:</strong> {selectedCropField.farmerName}</p>
-            <p><strong>Barangay:</strong> {selectedCropField.barangay}</p>
-            <p><strong>Field Name:</strong> {selectedCropField.fieldName}</p>
+            <p><strong>Farmer:</strong> {selectedCropField.farmer.username}</p>
+            <p><strong>Field:</strong> {selectedCropField.fieldName}</p>
             <p><strong>Crop:</strong> {selectedCropField.selectedCrop}</p>
             <p><strong>Size:</strong> {selectedCropField.fieldSize} ha</p>
-            <p><strong>Status:</strong> {selectedCropField.archived ? "Completed" : "Active"}</p>
+            <p>
+              <strong>Status:</strong>{" "}
+              {selectedCropField.archived ? "Completed" : "Active"}
+            </p>
 
-            <h4 className="text-md font-semibold mt-4">Tasks:</h4>
-
-            {selectedCropField.tasks?.length > 0 ? (
-              <ul className="mt-2 space-y-2">
-                {selectedCropField.tasks.map((t) => (
-                  <li key={t._id} className="border p-2 rounded bg-gray-50">
-                    <p><strong>Type:</strong> {t.type}</p>
-                    <p><strong>Date:</strong> {new Date(t.date).toLocaleDateString()}</p>
-                    <p><strong>Completed:</strong> {t.completed ? "Yes" : "No"}</p>
-                    {t.type === "Harvesting" && (
-                      <p><strong>Yield:</strong> {t.kilos} kg</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No tasks found.</p>
-            )}
+            <h4 className="text-md font-semibold mt-4 mb-2">AI Recommended Crops:</h4>
+            <ul className="list-disc ml-6">
+              {selectedCropField.aiRecommendations?.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
@@ -638,6 +676,7 @@ return (
           </div>
         </div>
       )}
+
     </div>
   );
 }
