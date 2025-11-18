@@ -225,7 +225,11 @@ setCropFilterList(cList);
   /* ============================================================
      ADD FARMER
   ============================================================ */
-  const handleAddFarmer = async (e) => {
+  /* ============================================================
+   ADD FARMER (Same as app registration but NO OTP)
+   AUTO-ASSIGN: role = "user", status = "inactive"
+============================================================ */
+const handleAddFarmer = async (e) => {
   e.preventDefault();
 
   if (newFarmer.password !== newFarmer.confirmPassword) {
@@ -233,32 +237,42 @@ setCropFilterList(cList);
     return;
   }
 
+  const fullPhone = "+63" + String(newFarmer.phone).trim();
+
   try {
-    const res = await axios.post(`${baseUrl}/users`, {
-      username: newFarmer.username,
-      phone: newFarmer.phone,
-      email: newFarmer.email,
+    const res = await axios.post(`${baseUrl}/auth/register`, {
+      username: newFarmer.username.trim(),
+      email: newFarmer.email.trim(),
+      phone: fullPhone,
       barangay: newFarmer.barangay,
-      password: newFarmer.password
+      password: newFarmer.password,
+      role: "user",              // 👈 Auto assign farmer role
+      status: "Inactive",        // 👈 ADD STATUS HERE
     });
 
-    setFarmers((prev) => [...prev, res.data.data]);
-    toast.success("New farmer registered!");
+    if (res.data.success) {
+      toast.success("Farmer registered successfully!");
 
-    setShowAddModal(false);
+      // refresh list instantly
+      fetchFarmers();
 
-    // RESET
-    setNewFarmer({
-      username: "",
-      phone: "+63",
-      email: "",
-      barangay: "",
-      password: "",
-      confirmPassword: "",
-    });
+      setShowAddModal(false);
 
-  } catch {
-    toast.error("Failed to add farmer.");
+      // Reset form
+      setNewFarmer({
+        username: "",
+        phone: "",
+        email: "",
+        barangay: "",
+        password: "",
+        confirmPassword: "",
+      });
+    } else {
+      toast.error(res.data.message || "Failed to add farmer.");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error(err.response?.data?.message || "Failed to add farmer.");
   }
 };
 
