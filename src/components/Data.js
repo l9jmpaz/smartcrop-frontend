@@ -108,7 +108,7 @@ export default function Data() {
   ============================================================ */
   const fetchYieldRecords = async () => {
     try {
-      const res = await axios.get(`${baseUrl}/yields`);
+      const res = await axios.get(`${baseUrl}/yields/admin/trend`);
       if (res.data.success) setYieldRecords(res.data.data);
     } catch {
       toast.error("Failed to load yield data");
