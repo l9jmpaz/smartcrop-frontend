@@ -20,7 +20,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   // ⭐ Performance Metrics
-  const [activeUsers, setActiveUsers] = useState(0);
+  const [activeFarmers, setActiveFarmers] = useState(0);
   const [serverSpeed, setServerSpeed] = useState(0);
 
   // ---------------------------------------------------
@@ -48,7 +48,7 @@ export default function Dashboard() {
 
       // Get Active Users
 const metricsRes = await axios.get(`${baseUrl}/metrics`);
-setActiveUsers(metricsRes.data.activeFarmers || 0);
+setActiveFarmers(metricsRes.data.activeFarmers || 0);
       // Alerts
       const alertRes = await axios
         .get(`${baseUrl}/api/alerts`)
@@ -95,10 +95,10 @@ setActiveUsers(metricsRes.data.activeFarmers || 0);
   // ---------------------------------------------------
   // 🔁 AUTO REFRESH — only metrics (lightweight)
   // ---------------------------------------------------
-  const fetchActiveUsersOnly = async () => {
+  const fetchActiveFarmersOnly = async () => {
     try {
       const res = await axios.get(`${baseUrl}/metrics`);
-      setActiveUsers(res.data.activeUsers || 0);
+      setActiveFarmers(res.data.activeFarmers || 0);
     } catch (err) {
       console.error("❌ Active user refresh failed");
     }
@@ -108,7 +108,7 @@ setActiveUsers(metricsRes.data.activeFarmers || 0);
     fetchDashboardData(); // initial load
 
    const polling = setTimeout(function refresh() {
-  fetchActiveUsersOnly();
+  fetchActiveFarmersOnly();
   return setTimeout(refresh, 10000);
 }, 10000);
   }, []);
@@ -156,7 +156,7 @@ setActiveUsers(metricsRes.data.activeFarmers || 0);
           </p>
 
           <p className="text-sm text-gray-800 font-medium">
-            Active Farmers: {activeUsers}
+            Active Farmers: {activeFarmers}
           </p>
         </div>
 
