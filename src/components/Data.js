@@ -45,12 +45,14 @@ const [allCrops, setAllCrops] = useState([]);
 const [cropFilter, setCropFilter] = useState("all");
 const [cropFilterList, setCropFilterList] = useState([]);
 
-  const [newFarmer, setNewFarmer] = useState({
-    username: "",
-    phone: "",
-    email: "",
-    barangay: "",
-  });
+ const [newFarmer, setNewFarmer] = useState({
+  username: "",
+  email: "",
+  barangay: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+});
 
   /* ============================================================
      EXPORT CSV (PURE JAVASCRIPT)
@@ -224,24 +226,41 @@ setCropFilterList(cList);
      ADD FARMER
   ============================================================ */
   const handleAddFarmer = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post(`${baseUrl}/users`, newFarmer);
-      setFarmers((prev) => [...prev, res.data.data]);
+  e.preventDefault();
 
-      toast.success("New farmer added!");
-      setShowAddModal(false);
+  if (newFarmer.password !== newFarmer.confirmPassword) {
+    toast.error("Passwords do not match!");
+    return;
+  }
 
-      setNewFarmer({
-        username: "",
-        phone: "",
-        email: "",
-        barangay: "",
-      });
-    } catch {
-      toast.error("Failed to add farmer");
-    }
-  };
+  try {
+    const res = await axios.post(${baseUrl}/users, {
+      username: newFarmer.username,
+      phone: newFarmer.phone,
+      email: newFarmer.email,
+      barangay: newFarmer.barangay,
+      password: newFarmer.password
+    });
+
+    setFarmers((prev) => [...prev, res.data.data]);
+    toast.success("New farmer registered!");
+
+    setShowAddModal(false);
+
+    // RESET
+    setNewFarmer({
+      username: "",
+      phone: "+63",
+      email: "",
+      barangay: "",
+      password: "",
+      confirmPassword: "",
+    });
+
+  } catch {
+    toast.error("Failed to add farmer.");
+  }
+};
 
   /* ============================================================
      FARMER VIEW DETAILS
@@ -526,7 +545,7 @@ setCropFilterList(cList);
 
   return fm.selectedCrop.toLowerCase() === cropFilter.toLowerCase();
 })
-                    .map((fm) => (
+                     .map((fm) => (
                       <tr key={fm._id} className="border-b hover:bg-gray-50">
                         <td className="p-2">{f.username}</td>
                         <td className="p-2">{fm.fieldName}</td>
@@ -753,66 +772,143 @@ setCropFilterList(cList);
           ADD FARMER MODAL
       ============================================================ */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md shadow relative">
-            <button
-              className="absolute top-3 right-3 text-gray-500"
-              onClick={() => setShowAddModal(false)}
-            >
-              <X size={18} />
-            </button>
+  <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+    <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow relative">
+      {/* Close Button */}
+      <button
+        className="absolute top-3 right-3 text-gray-500"
+        onClick={() => setShowAddModal(false)}
+      >
+        <X size={20} />
+      </button>
 
-            <h3 className="text-lg font-semibold mb-3">Add New Farmer</h3>
+      <h3 className="text-2xl font-semibold mb-6 text-center">
+        Register New Farmer
+      </h3>
 
-            <form onSubmit={handleAddFarmer} className="space-y-3">
-              <input
-                className="w-full border p-2 rounded"
-                placeholder="Full Name"
-                required
-                value={newFarmer.username}
-                onChange={(e) =>
-                  setNewFarmer({ ...newFarmer, username: e.target.value })
-                }
-              />
+      <form onSubmit={handleAddFarmer} className="space-y-5">
 
-              <input
-                className="w-full border p-2 rounded"
-                placeholder="Phone"
-                value={newFarmer.phone}
-                onChange={(e) =>
-                  setNewFarmer({ ...newFarmer, phone: e.target.value })
-                }
-              />
+        {/* Name */}
+        <div>
+          <label className="block mb-1 font-medium">Full Name</label>
+          <input
+            type="text"
+            required
+            value={newFarmer.username}
+            onChange={(e) =>
+              setNewFarmer({ ...newFarmer, username: e.target.value })
+            }
+            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            placeholder="Enter full name"
+          />
+        </div>
 
-              <input
-                className="w-full border p-2 rounded"
-                placeholder="Email"
-                value={newFarmer.email}
-                onChange={(e) =>
-                  setNewFarmer({ ...newFarmer, email: e.target.value })
-                }
-              />
+        {/* Email */}
+        <div>
+          <label className="block mb-1 font-medium">Email</label>
+          <input
+            type="email"
+            required
+            value={newFarmer.email}
+            onChange={(e) =>
+              setNewFarmer({ ...newFarmer, email: e.target.value })
+            }
+            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            placeholder="example@gmail.com"
+          />
+        </div>
 
-              <input
-                className="w-full border p-2 rounded"
-                placeholder="Barangay"
-                required
-                value={newFarmer.barangay}
-                onChange={(e) =>
-                  setNewFarmer({ ...newFarmer, barangay: e.target.value })
-                }
-              />
+        {/* Barangay Dropdown */}
+        <div>
+          <label className="block mb-1 font-medium">Barangay</label>
+          <select
+            required
+            value={newFarmer.barangay}
+            onChange={(e) =>
+              setNewFarmer({ ...newFarmer, barangay: e.target.value })
+            }
+            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+          >
+            <option value="">Select Barangay</option>
 
-              <button
-                type="submit"
-                className="w-full bg-emerald-600 text-white p-2 rounded"
-              >
-                Save Farmer
-              </button>
-            </form>
+            {[
+              "Altura Bata","Altura Matanda","Altura South","Ambulong",
+              "Bagbag","Bagumbayan","Balele","Banadero","Banjo East",
+              "Banjo West (Banjo Laurel)","Bilog-bilog","Boot","Cale","Darasa",
+              "Gonzales","Hidalgo","Janopol","Janopol Oriental","Laurel",
+              "Luyos","Mabini","Malaking Pulo","Maria Paz","Maugat",
+              "Montaña (Ik-ik)","Natatas","Pagaspas","Pantay Bata",
+              "Pantay Matanda","Poblacion 1","Poblacion 2","Poblacion 3",
+              "Poblacion 4","Poblacion 5","Poblacion 6","Poblacion 7",
+              "Sala","Sambat","San Jose","Santol","Santor","Sulpoc",
+              "Suplang","Talaga","Tinurik","Trapiche","Wawa"
+            ].map((b, i) => (
+              <option key={i} value={b}>{b}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Phone Number */}
+        <div>
+          <label className="block mb-1 font-medium">Phone Number</label>
+          <div className="flex items-center border rounded-xl bg-gray-50 p-3 focus-within:ring-2 focus-within:ring-emerald-500">
+            <span className="text-gray-600 mr-2">+63</span>
+            <input
+              type="text"
+              required
+              maxLength="10"
+              value={newFarmer.phone}
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, ""); // numbers only
+                setNewFarmer({ ...newFarmer, phone: v });
+              }}
+              className="flex-1 outline-none bg-transparent"
+              placeholder="9123456789"
+            />
           </div>
         </div>
-      )}
+
+        {/* Password */}
+        <div>
+          <label className="block mb-1 font-medium">Password</label>
+          <input
+            type="password"
+            required
+            value={newFarmer.password}
+            onChange={(e) =>
+              setNewFarmer({ ...newFarmer, password: e.target.value })
+            }
+            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            placeholder="Enter password"
+          />
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label className="block mb-1 font-medium">Confirm Password</label>
+          <input
+            type="password"
+            required
+            value={newFarmer.confirmPassword}
+            onChange={(e) =>
+              setNewFarmer({ ...newFarmer, confirmPassword: e.target.value })
+            }
+            className="w-full border rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+            placeholder="Repeat password"
+          />
+        </div>
+
+        {/* Save Button */}
+        <button
+          type="submit"
+          className="w-full bg-emerald-600 text-white p-3 rounded-xl text-lg font-medium"
+        >
+          Add Farmer
+        </button>
+      </form>
+    </div>
+  </div>
+)}
 
     </div>
   );
