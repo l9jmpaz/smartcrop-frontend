@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const baseUrl = "https://smartcrop-backend-1.onrender.com"; // ✅ your live backend
+const baseUrl = "https://smartcrop-backend-1.onrender.com";
 
 export default function AdminLogin({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -23,18 +23,20 @@ export default function AdminLogin({ onLogin }) {
       if (res.data.success) {
         const user = res.data.user;
 
-        // ✅ Allow only admin role
+        // Only allow admin access
         if (user.role !== "admin") {
           setError("Access denied. Admins only.");
           setLoading(false);
           return;
         }
 
-        // Save session
+        // ⭐ SAVE EVERYTHING NECESSARY ⭐
         localStorage.setItem("token", res.data.token || "");
+        localStorage.setItem("userId", user._id);                 // <-- REQUIRED
         localStorage.setItem("adminUser", JSON.stringify(user));
-        setLoading(false);
+        localStorage.setItem("role", user.role);
 
+        setLoading(false);
         if (onLogin) onLogin();
       } else {
         setError(res.data.message || "Invalid credentials.");
@@ -50,7 +52,6 @@ export default function AdminLogin({ onLogin }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-emerald-50 to-white">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-96 border border-emerald-100">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-6">
           <img
             src="assets/images/smart_crop_logo.png"
@@ -71,7 +72,7 @@ export default function AdminLogin({ onLogin }) {
             <input
               type="text"
               placeholder="Enter admin username"
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -85,7 +86,7 @@ export default function AdminLogin({ onLogin }) {
             <input
               type="password"
               placeholder="••••••••"
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -99,7 +100,7 @@ export default function AdminLogin({ onLogin }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition-all"
+            className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
