@@ -20,9 +20,15 @@ export default function Login({ onLogin }) {
         password,
       });
 
+      console.log("LOGIN RESPONSE:", res.data);
+
       if (res.data.success) {
+        // SAVE EVERYTHING NEEDED
         localStorage.setItem("token", res.data.token);
-        localStorage.setItem("adminUser", username);
+        localStorage.setItem("userId", res.data.user._id);          // ✅ IMPORTANT
+        localStorage.setItem("adminUser", res.data.user.username);  // For UI
+        localStorage.setItem("role", res.data.user.role || "admin"); // Optional
+
         onLogin();
       } else {
         setError(res.data.message || "Invalid credentials");
@@ -38,24 +44,20 @@ export default function Login({ onLogin }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-96 text-center">
-        
-        {/* 🌾 Logo */}
+
         <div className="flex flex-col items-center mb-6">
           <img
-            src="/smart_crop_logo.png?v=999"
+            src="/smart_crop_logo.png"
             alt="SmartCrop Logo"
-            className="w-20 h-24 mb-3 object-contain"
+            className="w-24 h-24 mb-3"
           />
 
           <h2 className="text-2xl font-bold text-emerald-700">
             SMART CROP PLANNING
           </h2>
-          <p className="text-gray-500 text-sm mt-1">
-            Admin Panel Login
-          </p>
+          <p className="text-gray-500 text-sm mt-1">Admin Panel Login</p>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
