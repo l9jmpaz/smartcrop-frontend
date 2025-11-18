@@ -165,7 +165,7 @@ setCropFilterList(cList);
   ============================================================ */
   const fetchYieldRecords = async () => {
   try {
-    const res = await axios.get(`${baseUrl}/farm/yield`);
+    const res = await axios.get(`${baseUrl}/farm/all/yield`);
     if (res.data.success) setYieldRecords(res.data.data);
   } catch {
     toast.error("Failed to load yield data");
