@@ -42,6 +42,8 @@ export default function Data() {
   const [selectedFarmerFields, setSelectedFarmerFields] = useState([]);
 
   const [selectedCropField, setSelectedCropField] = useState(null);
+const [cropFilter, setCropFilter] = useState("all");
+const [cropFilterList, setCropFilterList] = useState([]);
 
   const [newFarmer, setNewFarmer] = useState({
     username: "",
@@ -94,6 +96,51 @@ export default function Data() {
       );
 
       setFarmers(farmsWithUsers);
+      // ----- CALCULATE YIELD TREND -----
+farmsWithUsers.forEach((farmer) => {
+  const completed = farmer.farms.filter((f) => f.archived);
+
+  const harvests = completed
+    .map((f) => {
+      const h = f.tasks?.find((t) =>
+        t.type?.toLowerCase().includes("harvest")
+      );
+      return h?.kilos || null;
+    })
+    .filter((kg) => kg !== null);
+
+  if (harvests.length < 2) {
+    farmer.yieldTrend = 0;
+    farmer.yieldTrendLabel = "0.0%";
+    return;
+  }
+
+  const last = harvests[harvests.length - 1];
+  const prev = harvests[harvests.length - 2];
+  const diff = ((last - prev) / prev) * 100;
+
+  farmer.yieldTrend = diff;
+  farmer.yieldTrendLabel = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
+});
+
+// ----- BUILD CROP FILTER LIST -----
+const cList = [];
+farmsWithUsers.forEach((farmer) => {
+  farmer.farms.forEach((f) => {
+    if (f.archived && f.selectedCrop && f.completedAt) {
+      const d = new Date(f.completedAt);
+      const label = `${d.toLocaleString("default", {
+        month: "long",
+      })} ${d.getFullYear()} - ${f.selectedCrop}`;
+      cList.push({
+        value: `${f.selectedCrop}_${d.getMonth() + 1}_${d.getFullYear()}`,
+        label,
+      });
+    }
+  });
+});
+setCropFilterList(cList);
+
     } catch {
       toast.error("Failed to load farmers.");
     } finally {
@@ -118,7 +165,7 @@ export default function Data() {
   ============================================================ */
   const fetchYieldRecords = async () => {
     try {
-      const res = await axios.get(`${baseUrl}/yields/admin/trend`);
+      const res = await axios.get(`${baseUrl}/farm/:userId/yield`);
       if (res.data.success) setYieldRecords(res.data.data);
     } catch {
       toast.error("Failed to load yield data");
@@ -215,11 +262,22 @@ export default function Data() {
   /* ============================================================
      FILTER FARMERS
   ============================================================ */
-  const filteredFarmers = farmers.filter(
-    (f) =>
-      (!f.role || f.role !== "admin") &&
-      f.username?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredFarmers = farmers.filter((f) => {
+  const matchSearch = f.username
+    ?.toLowerCase()
+    .includes(search.toLowerCase());
+
+  if (!matchSearch) return false;
+
+  if (cropFilter === "all") return true;
+
+  return f.farms.some((field) => {
+    if (!field.archived || !field.completedAt) return false;
+    const d = new Date(field.completedAt);
+    const key = `${field.selectedCrop}_${d.getMonth() + 1}_${d.getFullYear()}`;
+    return key === cropFilter;
+  });
+});
 
   /* ============================================================
      UI START
@@ -246,101 +304,145 @@ export default function Data() {
       </div>
 
       {/* ============================================================
-          FARMERS TAB (UPDATED & CLEAN)
-      ============================================================ */}
-      {activeTab === "farmer" && (
-        <div className="bg-white rounded-xl p-6 shadow">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-lg font-semibold">Farmers Data</h2>
+    FARMERS TAB (UPDATED: YIELD TREND + CROP FILTER)
+============================================================ */}
+{activeTab === "farmer" && (
+  <div className="bg-white rounded-xl p-6 shadow">
 
-            <div className="flex gap-3">
-              <button
-                onClick={() =>
-                  exportCSV(
-                    "farmers.csv",
-                    filteredFarmers.map((f) => ({
-                      Name: f.username,
-                      Phone: f.phone || "—",
-                      Email: f.email || "—",
-                      Barangay: f.barangay || "—",
-                    }))
-                  )
-                }
-                className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded-md"
-              >
-                Export
-              </button>
+    {/* TITLE + ACTIONS */}
+    <div className="flex justify-between mb-4">
+      <h2 className="text-lg font-semibold">Farmers Data</h2>
 
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md"
-              >
-                <UserPlus size={18} /> Add Farmer
-              </button>
-            </div>
-          </div>
+      <div className="flex gap-3">
 
-          {/* Search */}
-          <div className="mb-4">
-            <input
-              placeholder="Search farmer..."
-              className="border p-2 rounded w-full"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        {/* EXPORT */}
+        <button
+          onClick={() =>
+            exportCSV(
+              "farmers.csv",
+              filteredFarmers.map((f) => ({
+                Name: f.username,
+                Phone: f.phone || "—",
+                Email: f.email || "—",
+                Barangay: f.barangay || "—",
+                YieldTrend: f.yieldTrendLabel || "0.0%",
+              }))
+            )
+          }
+          className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded-md"
+        >
+          Export
+        </button>
 
-          {!loading ? (
-            <div className="relative max-h-[65vh] overflow-y-auto border rounded-lg">
-              <table className="w-full text-sm">
-                <thead className="bg-emerald-100 sticky top-0">
-                  <tr>
-                    <th className="p-2">Name</th>
-                    <th className="p-2">Phone</th>
-                    <th className="p-2">Email</th>
-                    <th className="p-2 text-right">Actions</th>
-                  </tr>
-                </thead>
+        {/* ADD */}
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md"
+        >
+          <UserPlus size={18} /> Add Farmer
+        </button>
 
-                <tbody>
-                  {filteredFarmers.map((f) => (
-                    <tr key={f._id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">{f.username}</td>
-                      <td className="p-2">{f.phone || "—"}</td>
-                      <td className="p-2">{f.email || "—"}</td>
+      </div>
+    </div>
 
-                      <td className="p-2 text-right space-x-3">
-                        <button
-                          onClick={() => openDetailsModal(f)}
-                          className="text-green-700"
-                        >
-                          View Details
-                        </button>
+    {/* SEARCH + CROP FILTER */}
+    <div className="flex gap-4 mb-4">
 
-                        <button
-                          onClick={() => editFarmer(f._id, f)}
-                          className="text-blue-600"
-                        >
-                          <Edit size={16} />
-                        </button>
+      {/* SEARCH */}
+      <input
+        placeholder="Search farmer..."
+        className="border p-2 rounded w-full"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-                        <button
-                          onClick={() => deleteFarmer(f._id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-center py-4">Loading...</p>
-          )}
-        </div>
-      )}
+      {/* CROP FILTER DROPDOWN */}
+      <select
+        value={cropFilter}
+        onChange={(e) => setCropFilter(e.target.value)}
+        className="border p-2 rounded min-w-[180px]"
+      >
+        <option value="all">All Crops</option>
+        {cropFilterList.map((c, i) => (
+          <option key={i} value={c.value}>
+            {c.label}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* FARMERS LIST */}
+    {!loading ? (
+      <div className="relative max-h-[65vh] overflow-y-auto border rounded-lg">
+        <table className="w-full text-sm">
+          <thead className="bg-emerald-100 sticky top-0">
+            <tr>
+              <th className="p-2">Name</th>
+              <th className="p-2">Phone</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Yield Trend</th>
+              <th className="p-2 text-right">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredFarmers.map((f) => (
+              <tr key={f._id} className="border-b hover:bg-gray-50">
+                <td className="p-2">{f.username}</td>
+                <td className="p-2">{f.phone || "—"}</td>
+                <td className="p-2">{f.email || "—"}</td>
+
+                {/* YIELD TREND */}
+                <td className="p-2">
+                  <span
+                    className={`font-semibold ${
+                      f.yieldTrend > 0
+                        ? "text-green-600"
+                        : f.yieldTrend < 0
+                        ? "text-red-600"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {f.yieldTrendLabel}
+                  </span>
+                </td>
+
+                {/* ACTIONS */}
+                <td className="p-2 text-right space-x-3">
+                  <button
+                    onClick={() => openDetailsModal(f)}
+                    className="text-green-700"
+                  >
+                    View Details
+                  </button>
+
+                  <button
+                    onClick={() => editFarmer(f._id, f)}
+                    className="text-blue-600"
+                  >
+                    <Edit size={16} />
+                  </button>
+
+                  <button
+                    onClick={() => deleteFarmer(f._id)}
+                    className="text-red-600"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+
+              </tr>
+            ))}
+          </tbody>
+
+        </table>
+      </div>
+    ) : (
+      <p className="text-center py-4">Loading...</p>
+    )}
+
+  </div>
+)}
       {/* ============================================================
           CROPS TAB — WITH STATUS + VIEW DETAILS + EXPORT
       ============================================================ */}
