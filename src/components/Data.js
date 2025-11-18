@@ -463,19 +463,21 @@ setCropFilterList(cList);
 
             <div className="flex gap-3">
               <button
-                onClick={() => {
-                  const rows = farmers.flatMap((f) =>
-                    f.farms
-                      ?.filter((fm) => fm.selectedCrop && fm.selectedCrop.trim() !== "")
-                      .map((fm) => ({
-                        Farmer: f.username,
-                        Field: fm.fieldName,
-                        Crop: fm.selectedCrop,
-                        Status: fm.archived ? "Completed" : "Active",
-                      }))
-                  );
-                  exportCSV("crops.csv", rows);
-                }}
+               onClick={() => {
+  const rows = farmers.flatMap((f) =>
+    (f.farms || []).map((fm) => ({
+      Farmer: f.username,
+      Field: fm.fieldName || "—",
+      Crop: fm.selectedCrop || "—",
+      Status: fm.archived ? "Completed" : "Active",
+      CompletedAt: fm.completedAt
+        ? new Date(fm.completedAt).toLocaleDateString()
+        : "—"
+    }))
+  );
+
+  exportCSV("crops.csv", rows);
+}}
                 className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded-md"
               >
                 Export
