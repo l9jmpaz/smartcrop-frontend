@@ -47,9 +47,8 @@ export default function Dashboard() {
       );
 
       // Get Active Users
-      const metricsRes = await axios.get(`${baseUrl}/metrics`);
-      setActiveUsers(metricsRes.data.activeUsers || 0);
-
+const metricsRes = await axios.get(`${baseUrl}/metrics`);
+setActiveUsers(metricsRes.data.activeFarmers || 0);
       // Alerts
       const alertRes = await axios
         .get(`${baseUrl}/api/alerts`)
