@@ -315,20 +315,96 @@ export default function Data() {
         </div>
       )}
 
-      {/* ============================================================
-          WEATHER TAB
-      ============================================================ */}
-      {activeTab === "weather" && (
-        <div className="bg-white rounded-xl p-6 shadow">
-          <h2 className="text-lg font-semibold mb-4">Weather Data</h2>
+    {/* ============================================================
+    WEATHER TAB (OPENWEATHER API)
+============================================================ */}
+{activeTab === "weather" && (
+  <div className="bg-white rounded-xl p-6 shadow">
+    <h2 className="text-lg font-semibold mb-4">Weather Data</h2>
 
-          {weatherRecords.length > 0 ? (
-            <pre>{JSON.stringify(weatherRecords[0], null, 2)}</pre>
-          ) : (
-            <p>No weather data found.</p>
-          )}
+    <button
+      onClick={fetchWeatherRecords}
+      className="mb-4 bg-emerald-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
+    >
+      <RefreshCw size={16} /> Sync Weather Now
+    </button>
+
+    {weatherRecords.length > 0 ? (
+      <>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-blue-100 p-4 rounded-xl text-center">
+            <p className="text-sm text-gray-600">Temperature</p>
+            <h2 className="text-xl font-bold text-blue-700">
+              {weatherRecords[0].temperature?.toFixed(1)}°C
+            </h2>
+          </div>
+
+          <div className="bg-green-100 p-4 rounded-xl text-center">
+            <p className="text-sm text-gray-600">Humidity</p>
+            <h2 className="text-xl font-bold text-green-700">
+              {weatherRecords[0].humidity?.toFixed(0)}%
+            </h2>
+          </div>
+
+          <div className="bg-yellow-100 p-4 rounded-xl text-center">
+            <p className="text-sm text-gray-600">Rainfall</p>
+            <h2 className="text-xl font-bold text-yellow-700">
+              {weatherRecords[0].rainfall?.toFixed(1)} mm
+            </h2>
+          </div>
         </div>
-      )}
+
+        {/* Weather Chart */}
+        <div style={{ width: "100%", height: 250 }}>
+          <ResponsiveContainer>
+            <LineChart
+              data={weatherRecords.slice(0, 7).reverse()}
+              margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString()} />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line dataKey="temperature" stroke="#3b82f6" name="Temp (°C)" />
+              <Line dataKey="humidity" stroke="#10b981" name="Humidity (%)" />
+              <Line dataKey="rainfall" stroke="#f59e0b" name="Rainfall (mm)" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Weather Table */}
+        <div className="mt-6 overflow-y-auto max-h-[300px] border rounded-lg">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2">Date</th>
+                <th className="p-2">Temperature</th>
+                <th className="p-2">Humidity</th>
+                <th className="p-2">Rainfall</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weatherRecords.map((w) => (
+                <tr key={w._id} className="border-b">
+                  <td className="p-2">{new Date(w.date).toLocaleString()}</td>
+                  <td className="p-2">{w.temperature?.toFixed(1)}°C</td>
+                  <td className="p-2">{w.humidity?.toFixed(0)}%</td>
+                  <td className="p-2">{w.rainfall?.toFixed(1)} mm</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    ) : (
+      <p>No weather data available.</p>
+    )}
+  </div>
+)}
+
+      
 
       {/* ============================================================
           VIEW DETAILS MODAL 
