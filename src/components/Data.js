@@ -108,31 +108,30 @@ const fetchAllCrops = async () => {
 
       setFarmers(farmsWithUsers);
       // ----- CALCULATE YIELD TREND -----
-farmsWithUsers.forEach((farmer) => {
-  const completed = farmer.farms.filter((f) => f.archived);
+// ----- CALCULATE YIELD TREND USING BACKEND -----
+for (const farmer of farmsWithUsers) {
+  try {
+    const res = await axios.get(`${baseUrl}/farm/${farmer._id}/yield`);
+    const trend = res.data?.trend || [];
 
-  const harvests = completed
-    .map((f) => {
-      const h = f.tasks?.find((t) =>
-        t.type?.toLowerCase().includes("harvest")
-      );
-      return h?.kilos || null;
-    })
-    .filter((kg) => kg !== null);
+    if (trend.length < 2) {
+      farmer.yieldTrend = 0;
+      farmer.yieldTrendLabel = "0.0%";
+      continue;
+    }
 
-  if (harvests.length < 1) {
+    const prev = trend[trend.length - 2].kilos;
+    const last = trend[trend.length - 1].kilos;
+
+    const diff = ((last - prev) / prev) * 100;
+
+    farmer.yieldTrend = diff;
+    farmer.yieldTrendLabel = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
+  } catch (err) {
     farmer.yieldTrend = 0;
     farmer.yieldTrendLabel = "0.0%";
-    return;
   }
-
-  const last = harvests[harvests.length - 1];
-  const prev = harvests[harvests.length - 2];
-  const diff = ((last - prev) / prev) * 100;
-
-  farmer.yieldTrend = diff;
-  farmer.yieldTrendLabel = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
-});
+}
 
 // ----- BUILD CROP FILTER LIST -----
 const cList = [];
