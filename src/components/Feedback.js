@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+
 import {
   Search,
   User,
@@ -7,6 +8,7 @@ import {
   CheckCircle2,
   MessageSquare,
   X,
+  Send,
 } from "lucide-react";
 
 const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
@@ -18,16 +20,21 @@ export default function Feedback() {
   const [userFilter, setUserFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [replyText, setReplyText] = useState("");
 
-  // ✅ Fetch feedback
+  // ============================================================
+  // FETCH FEEDBACK
+  // ============================================================
   const fetchFeedback = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${baseUrl}/support`, {
         params: { status: filter, q: search },
       });
+
       if (res.data.success) {
         let data = res.data.data || [];
+
         if (userFilter.trim()) {
           data = data.filter((f) =>
             f.userId?.username
@@ -35,6 +42,7 @@ export default function Feedback() {
               .includes(userFilter.toLowerCase())
           );
         }
+
         setFeedback(data);
       }
     } catch (err) {
@@ -44,12 +52,34 @@ export default function Feedback() {
     }
   };
 
+  // ============================================================
+  // MARK AS RESOLVED
+  // ============================================================
   const markResolved = async (id) => {
     try {
       await axios.put(`${baseUrl}/support/${id}`);
       fetchFeedback();
     } catch (err) {
-      console.error("Error marking resolved:", err);
+      console.error("Resolve error:", err);
+    }
+  };
+
+  // ============================================================
+  // SEND ADMIN REPLY
+  // ============================================================
+  const sendReply = async () => {
+    if (!selectedFeedback || !replyText.trim()) return;
+
+    try {
+      await axios.put(`${baseUrl}/support/${selectedFeedback._id}/reply`, {
+        replyText,
+      });
+
+      setReplyText("");
+      setSelectedFeedback(null);
+      fetchFeedback();
+    } catch (err) {
+      console.error("Reply error:", err);
     }
   };
 
@@ -57,9 +87,12 @@ export default function Feedback() {
     fetchFeedback();
   }, [filter, search, userFilter]);
 
+  // ============================================================
+  // UI
+  // ============================================================
   return (
     <div className="p-6 bg-emerald-50/40 rounded-2xl shadow-sm relative">
-      {/* ====== Tabs (styled like Farmers/Crops/Weather) ====== */}
+      {/* FILTER TABS */}
       <div className="flex items-center gap-4 mb-6">
         {["all", "unread", "resolved"].map((tab) => (
           <button
@@ -76,9 +109,8 @@ export default function Feedback() {
         ))}
       </div>
 
-      {/* ====== Search & Filter ====== */}
+      {/* SEARCH & FILTER */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {/* Search feedback */}
         <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2 flex-1 min-w-[220px]">
           <Search className="text-gray-400 mr-2" size={18} />
           <input
@@ -90,7 +122,6 @@ export default function Feedback() {
           />
         </div>
 
-        {/* Filter by user */}
         <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2 flex-1 min-w-[220px]">
           <User className="text-gray-400 mr-2" size={18} />
           <input
@@ -103,7 +134,7 @@ export default function Feedback() {
         </div>
       </div>
 
-      {/* ====== Recent Feedback Section ====== */}
+      {/* FEEDBACK TABLE */}
       <div className="bg-white rounded-2xl shadow-sm p-5">
         <h3 className="text-md font-semibold text-gray-700 mb-3">
           Recent Feedback
@@ -115,9 +146,7 @@ export default function Feedback() {
               Loading feedback...
             </p>
           ) : feedback.length === 0 ? (
-            <p className="text-center text-gray-500 py-6">
-              No feedback found.
-            </p>
+            <p className="text-center text-gray-500 py-6">No feedback found.</p>
           ) : (
             <table className="w-full text-sm text-gray-700">
               <thead className="sticky top-0 bg-gray-100 text-gray-600 text-left">
@@ -129,6 +158,7 @@ export default function Feedback() {
                   <th className="py-2 px-4 text-center">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {feedback.map((item) => (
                   <tr
@@ -146,35 +176,39 @@ export default function Feedback() {
                       />
                       <span>{item.userId?.username || "Unknown"}</span>
                     </td>
+
                     <td className="py-3 px-4 truncate max-w-[200px]">
                       {item.message}
                     </td>
+
                     <td className="py-3 px-4">
                       {item.status === "unread" ? (
-                        <span className="text-red-500 font-medium">
-                          Unread
-                        </span>
+                        <span className="text-red-500 font-medium">Unread</span>
                       ) : (
                         <span className="text-green-600 font-medium">
                           Resolved
                         </span>
                       )}
                     </td>
+
                     <td className="py-3 px-4 whitespace-nowrap">
                       {new Date(item.date).toLocaleDateString()}
                     </td>
+
                     <td className="py-3 px-4 text-center flex justify-center gap-3">
                       <Eye
                         size={18}
                         className="text-gray-600 hover:text-emerald-600 cursor-pointer transition"
-                        title="View Message"
-                        onClick={() => setSelectedFeedback(item)}
+                        onClick={() => {
+                          setSelectedFeedback(item);
+                          setReplyText("");
+                        }}
                       />
+
                       {item.status === "unread" && (
                         <CheckCircle2
                           size={18}
                           className="text-gray-600 hover:text-green-600 cursor-pointer transition"
-                          title="Mark as Resolved"
                           onClick={() => markResolved(item._id)}
                         />
                       )}
@@ -187,57 +221,56 @@ export default function Feedback() {
         </div>
       </div>
 
-      {/* ====== MODAL ====== */}
+      {/* ===================== MODAL ===================== */}
       {selectedFeedback && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md shadow relative">
             <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              className="absolute top-3 right-3 text-gray-500"
               onClick={() => setSelectedFeedback(null)}
             >
-              <X size={20} />
+              <X size={18} />
             </button>
 
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <MessageSquare className="text-emerald-600" /> Feedback Details
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <MessageSquare className="text-emerald-600" />
+              Feedback Message
             </h3>
 
-            <div className="space-y-3 text-gray-700">
-              <p>
-                <span className="font-medium">From:</span>{" "}
-                {selectedFeedback.userId?.username || "Unknown"} (
-                {selectedFeedback.userId?.barangay || "N/A"})
-              </p>
-              <p>
-                <span className="font-medium">Date:</span>{" "}
-                {new Date(selectedFeedback.date).toLocaleString()}
-              </p>
-              <p>
-                <span className="font-medium">Status:</span>{" "}
-                {selectedFeedback.status === "unread" ? (
-                  <span className="text-red-500 font-medium">Unread</span>
-                ) : (
-                  <span className="text-green-600 font-medium">Resolved</span>
-                )}
-              </p>
-              <div className="mt-4 p-3 bg-emerald-50 rounded-lg text-sm text-gray-800 border border-emerald-100">
-                {selectedFeedback.message}
-              </div>
+            <p>
+              <strong>User:</strong> {selectedFeedback.userId?.username}
+            </p>
+            <p>
+              <strong>Barangay:</strong>{" "}
+              {selectedFeedback.userId?.barangay || "N/A"}
+            </p>
+
+            <div className="mt-3 p-3 bg-emerald-50 rounded-lg text-sm border border-emerald-100">
+              {selectedFeedback.message}
             </div>
 
-            {selectedFeedback.status === "unread" && (
-              <div className="flex justify-end mt-5">
-                <button
-                  onClick={() => {
-                    markResolved(selectedFeedback._id);
-                    setSelectedFeedback(null);
-                  }}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md transition"
-                >
-                  <CheckCircle2 size={18} /> Mark as Resolved
-                </button>
+            {selectedFeedback.adminReply && (
+              <div className="mt-4 p-3 bg-gray-50 border rounded-lg text-sm">
+                <strong>Your Previous Reply:</strong>
+                <p>{selectedFeedback.adminReply}</p>
               </div>
             )}
+
+            {/* Reply Section */}
+            <textarea
+              placeholder="Type your reply..."
+              className="w-full border p-2 rounded mt-4"
+              rows="3"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+            />
+
+            <button
+              onClick={sendReply}
+              className="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg flex items-center justify-center gap-2"
+            >
+              <Send size={18} /> Send Reply
+            </button>
           </div>
         </div>
       )}
