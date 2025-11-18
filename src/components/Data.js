@@ -99,7 +99,6 @@ const [cropFilterList, setCropFilterList] = useState([]);
       // ----- CALCULATE YIELD TREND -----
 farmsWithUsers.forEach((farmer) => {
   const completed = farmer.farms.filter((f) => f.archived);
-
   const harvests = completed
     .map((f) => {
       const h = f.tasks?.find((t) =>
@@ -120,7 +119,7 @@ farmsWithUsers.forEach((farmer) => {
   const diff = ((last - prev) / prev) * 100;
 
   farmer.yieldTrend = diff;
-  farmer.yieldTrendLabel = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
+  farmer.yieldTrendLabel = ${diff > 0 ? "+" : ""}${diff.toFixed(1)}%;
 });
 
 // ----- BUILD CROP FILTER LIST -----
@@ -165,7 +164,7 @@ setCropFilterList(cList);
   ============================================================ */
   const fetchYieldRecords = async () => {
   try {
-    const res = await axios.get(`${baseUrl}/farm/all/yields`);
+    const res = await axios.get(`${baseUrl}/farm/all/yield`);
     if (res.data.success) setYieldRecords(res.data.data);
   } catch {
     toast.error("Failed to load yield data");
