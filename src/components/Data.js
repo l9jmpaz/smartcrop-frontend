@@ -549,45 +549,42 @@ const handleAddFarmer = async (e) => {
               </thead>
 
               <tbody>
-                {farmers.flatMap((f) =>
-  f.farms
-  ?.filter((fm) => {
-    // Show all fields if crop filter = all
+                {farmers.flatMap((f) => {
+
+  // 👉 FILTER OUT USERS WITH NO CROPS AT ALL
+  const fieldsWithCrop = (f.farms || []).filter(fm => fm.selectedCrop);
+
+  if (fieldsWithCrop.length === 0) return []; // hide user
+
+  // 👉 NOW APPLY CROP FILTER
+  const filteredFields = fieldsWithCrop.filter((fm) => {
     if (cropFilter === "all") return true;
-
-    // Only filter by crop if selectedCrop exists
-    if (!fm.selectedCrop) return false;
-
     return fm.selectedCrop.toLowerCase() === cropFilter.toLowerCase();
-  })
-                     .map((fm) => (
-                      <tr key={fm._id} className="border-b hover:bg-gray-50">
-                        <td className="p-2">{f.username}</td>
-                        <td className="p-2">{fm.fieldName}</td>
-                        <td className="p-2">{fm.selectedCrop}</td>
-                        <td className="p-2">
-                          {fm.archived ? (
-                            <span className="text-red-600 font-medium">
-                              Completed
-                            </span>
-                          ) : (
-                            <span className="text-green-600 font-medium">
-                              Active
-                            </span>
-                          )}
-                        </td>
+  });
 
-                        <td className="p-2 text-right">
-                          <button
-                            onClick={() => openCropDetails(fm, f)}
-                            className="text-blue-700"
-                          >
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                )}
+  return filteredFields.map((fm) => (
+    <tr key={fm._id} className="border-b hover:bg-gray-50">
+      <td className="p-2">{f.username}</td>
+      <td className="p-2">{fm.fieldName}</td>
+      <td className="p-2">{fm.selectedCrop}</td>
+      <td className="p-2">
+        {fm.archived ? (
+          <span className="text-red-600 font-medium">Completed</span>
+        ) : (
+          <span className="text-green-600 font-medium">Active</span>
+        )}
+      </td>
+      <td className="p-2 text-right">
+        <button
+          onClick={() => openCropDetails(fm, f)}
+          className="text-blue-700"
+        >
+          View Details
+        </button>
+      </td>
+    </tr>
+  ));
+})}
               </tbody>
             </table>
           </div>
