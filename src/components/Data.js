@@ -109,7 +109,7 @@ farmsWithUsers.forEach((farmer) => {
     })
     .filter((kg) => kg !== null);
 
-  if (harvests.length < 2) {
+  if (harvests.length < 1) {
     farmer.yieldTrend = 0;
     farmer.yieldTrendLabel = "0.0%";
     return;
@@ -165,7 +165,7 @@ setCropFilterList(cList);
   ============================================================ */
   const fetchYieldRecords = async () => {
   try {
-    const res = await axios.get(`${baseUrl}/farm/all/yield`);
+    const res = await axios.get(`${baseUrl}/farm/all/yields`);
     if (res.data.success) setYieldRecords(res.data.data);
   } catch {
     toast.error("Failed to load yield data");
