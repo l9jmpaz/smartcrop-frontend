@@ -4,7 +4,6 @@ import Dashboard from "./components/Dashboard";
 import DataTab from "./components/Data";
 import Feedback from "./components/Feedback";
 import Reports from "./components/Reports";
-import Users from "./components/Users";
 import Notifications from "./components/Notifications";
 import Settings from "./components/Settings";
 import AdminLogin from "./components/AdminLogin";
@@ -57,7 +56,6 @@ export default function App() {
         {active === "data" && <DataTab />}
         {active === "feedback" && <Feedback />}
         {active === "reports" && <Reports />}
-        {active === "users" && <Users />}
         {active === "notifications" && (
           <Notifications onUnreadCountChange={setUnreadCount} />
         )}
