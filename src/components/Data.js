@@ -40,7 +40,7 @@ export default function Data() {
 
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [selectedFarmerFields, setSelectedFarmerFields] = useState([]);
-
+const [allCrops, setAllCrops] = useState([]);
   const [selectedCropField, setSelectedCropField] = useState(null);
 const [cropFilter, setCropFilter] = useState("all");
 const [cropFilterList, setCropFilterList] = useState([]);
@@ -74,7 +74,16 @@ const [cropFilterList, setCropFilterList] = useState([]);
     a.download = filename;
     a.click();
   };
-
+const fetchAllCrops = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/crops`);
+    if (res.data) {
+      setAllCrops(res.data.map((c) => c.name)); // extract crop names
+    }
+  } catch (err) {
+    toast.error("Failed to load crop list");
+  }
+};
   /* ============================================================
      FETCH FARMERS + FIELDS + YIELDS
   ============================================================ */
@@ -258,6 +267,7 @@ setCropFilterList(cList);
     fetchFarmers();
     fetchWeatherRecords();
     fetchYieldRecords();
+    fetchAllCrops();
   }, [activeTab]);
 
   /* ============================================================
@@ -364,19 +374,6 @@ setCropFilterList(cList);
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {/* CROP FILTER DROPDOWN */}
-      <select
-        value={cropFilter}
-        onChange={(e) => setCropFilter(e.target.value)}
-        className="border p-2 rounded min-w-[180px]"
-      >
-        <option value="all">All Crops</option>
-        {cropFilterList.map((c, i) => (
-          <option key={i} value={c.value}>
-            {c.label}
-          </option>
-        ))}
-      </select>
     </div>
 
     {/* FARMERS LIST */}
@@ -457,6 +454,21 @@ setCropFilterList(cList);
       {activeTab === "crops" && (
         <div className="bg-white rounded-xl p-6 shadow">
           <div className="flex justify-between items-center mb-4">
+            {/* Crop Filter */}
+<div className="mb-4">
+  <select
+    value={cropFilter}
+    onChange={(e) => setCropFilter(e.target.value)}
+    className="border p-2 rounded"
+  >
+    <option value="all">All Crops</option>
+    {allCrops.map((crop, index) => (
+      <option key={index} value={crop}>
+        {crop}
+      </option>
+    ))}
+  </select>
+</div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Leaf className="text-green-600" size={20} /> Crop Records
             </h2>
@@ -507,10 +519,13 @@ setCropFilterList(cList);
               <tbody>
                 {farmers.flatMap((f) =>
                   f.farms
-                    ?.filter(
-                      (fm) =>
-                        fm.selectedCrop && fm.selectedCrop.trim() !== ""
-                    )
+                    ?.filter((fm) => {
+  if (!fm.selectedCrop) return false;
+
+  if (cropFilter === "all") return true;
+
+  return fm.selectedCrop.toLowerCase() === cropFilter.toLowerCase();
+})
                     .map((fm) => (
                       <tr key={fm._id} className="border-b hover:bg-gray-50">
                         <td className="p-2">{f.username}</td>
