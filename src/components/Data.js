@@ -119,7 +119,7 @@ farmsWithUsers.forEach((farmer) => {
   const diff = ((last - prev) / prev) * 100;
 
   farmer.yieldTrend = diff;
-  farmer.yieldTrendLabel = ${diff > 0 ? "+" : ""}${diff.toFixed(1)}%;
+  farmer.yieldTrendLabel = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
 });
 
 // ----- BUILD CROP FILTER LIST -----
