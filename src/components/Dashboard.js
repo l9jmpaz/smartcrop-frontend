@@ -107,8 +107,10 @@ setActiveUsers(metricsRes.data.activeFarmers || 0);
   useEffect(() => {
     fetchDashboardData(); // initial load
 
-    const interval = setInterval(fetchActiveUsersOnly, 10000); // auto every 10s
-    return () => clearInterval(interval);
+   const polling = setTimeout(function refresh() {
+  fetchActiveUsersOnly();
+  return setTimeout(refresh, 10000);
+}, 10000);
   }, []);
 
   if (loading) {
