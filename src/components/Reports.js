@@ -11,15 +11,19 @@ export default function Reports() {
   const [weather, setWeather] = useState([]);
   const [reports, setReports] = useState([]);
   const [yieldTrend, setYieldTrend] = useState(0);
+
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch all farms
+      // -------------------------------------------
+      // FETCH ALL FARMS
+      // -------------------------------------------
       const farmRes = await axios.get(`${baseUrl}/farm`);
       const farms = farmRes.data.farms || [];
 
+      // BUILD ALL REPORTS (TASKS)
       const allReports = farms.flatMap((farm) => {
         if (!farm || !farm.tasks) return [];
 
@@ -39,7 +43,6 @@ export default function Reports() {
           _id: task._id,
           farmer: farmerName,
           barangay: farmerBarangay,
-          title: task.type || "Task",
           crop: cropName,
           kilos: Number(task.kilos) || 0,
           date: new Date(task.date || task.createdAt || Date.now()),
@@ -49,48 +52,61 @@ export default function Reports() {
 
       setReports(allReports);
 
-      // Completed harvests
-      const cropReports = allReports.filter(
+      // -------------------------------------------
+      // FILTER CROP REPORTS = COMPLETED HARVESTS
+      // -------------------------------------------
+      const completedHarvests = allReports.filter(
         (r) =>
-          r.title.toLowerCase().includes("harvest") &&
           r.kilos > 0 &&
-          r.completed
+          r.completed &&
+          r.crop !== "—"
       );
 
-      setCrops(cropReports);
+      setCrops(completedHarvests);
 
-      // Yield trend
+      // -------------------------------------------
+      // FETCH YIELD TREND (GLOBAL)
+      // -------------------------------------------
+      const yieldRes = await axios.get(`${baseUrl}/farm/all/yields`);
+      const yieldRecords = yieldRes.data.data || [];
+
       const now = new Date();
       const thisMonth = now.getMonth();
       const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
       const thisYear = now.getFullYear();
       const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
 
-      const thisMonthYield = cropReports
-        .filter(
-          (r) =>
-            r.date.getMonth() === thisMonth && r.date.getFullYear() === thisYear
-        )
-        .reduce((sum, r) => sum + r.kilos, 0);
+      // Yield this month
+      const thisMonthYield = yieldRecords
+        .filter((y) => {
+          const d = new Date(y.date);
+          return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+        })
+        .reduce((sum, y) => sum + y.kilos, 0);
 
-      const lastMonthYield = cropReports
-        .filter(
-          (r) =>
-            r.date.getMonth() === lastMonth &&
-            r.date.getFullYear() === lastMonthYear
-        )
-        .reduce((sum, r) => sum + r.kilos, 0);
+      // Yield last month
+      const lastMonthYield = yieldRecords
+        .filter((y) => {
+          const d = new Date(y.date);
+          return (
+            d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear
+          );
+        })
+        .reduce((sum, y) => sum + y.kilos, 0);
 
       let trend = 0;
       if (lastMonthYield > 0) {
         trend = ((thisMonthYield - lastMonthYield) / lastMonthYield) * 100;
       }
+
       setYieldTrend(trend.toFixed(1));
 
-      // WEATHER DATA
+      // -------------------------------------------
+      // WEATHER RECORDS
+      // -------------------------------------------
       const weatherRes = await axios.get(`${baseUrl}/weather`);
-      const records = weatherRes.data.data || [];
-      setWeather(records);
+      setWeather(weatherRes.data.data || []);
+
     } catch (err) {
       console.error("❌ Error fetching reports:", err);
     } finally {
@@ -110,13 +126,18 @@ export default function Reports() {
     r.farmer.toLowerCase().includes(search.toLowerCase())
   );
 
+  // -------------------------------------------
   // PRINT HANDLER
+  // -------------------------------------------
   const handlePrint = () => {
     const printContents = document.getElementById("print-area").innerHTML;
     const originalContents = document.body.innerHTML;
+
     document.body.innerHTML = `
       <div style="padding:20px; font-family:Arial">
-        <h2 style="text-align:center; color:#047857;">SmartCrop Reports - ${activeTab.toUpperCase()}</h2>
+        <h2 style="text-align:center; color:#047857;">
+          SmartCrop Reports - ${activeTab.toUpperCase()}
+        </h2>
         ${printContents}
       </div>
     `;
@@ -128,7 +149,8 @@ export default function Reports() {
   const avgRainfall =
     weather.length > 0
       ? (
-          weather.reduce((sum, w) => sum + (w.rainfall || 0), 0) / weather.length
+          weather.reduce((sum, w) => sum + (w.rainfall || 0), 0) /
+          weather.length
         ).toFixed(1)
       : 0;
 
@@ -142,10 +164,9 @@ export default function Reports() {
 
   return (
     <div className="p-6">
-      {/* HEADER */}
+      {/* ---------------- HEADER ---------------- */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-emerald-700">Reports</h2>
-
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -154,7 +175,6 @@ export default function Reports() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-
           <button
             onClick={handlePrint}
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
@@ -164,7 +184,7 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* TABS */}
+      {/* ---------------- TABS ---------------- */}
       <div className="flex space-x-4 mb-6 bg-emerald-50 rounded-full p-2 w-fit">
         {["overview", "crop", "weather"].map((tab) => (
           <button
@@ -181,19 +201,20 @@ export default function Reports() {
         ))}
       </div>
 
+      {/* ==================== PRINT AREA ==================== */}
       <div id="print-area">
-        {/* ========================= OVERVIEW TAB ========================= */}
+        {/* ==================== OVERVIEW TAB ==================== */}
         {activeTab === "overview" && (
           <div>
             {/* SUMMARY CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
-                <h3 className="font-semibold text-gray-600">Crop Reports</h3>
+                <h3 className="font-semibold text-gray-600">Farmers Reporting</h3>
                 <p className="text-3xl font-bold text-emerald-700 mt-1">
                   {filteredCrops.length}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Farmers reporting this month
+                  Completed harvest reports
                 </p>
               </div>
 
@@ -217,7 +238,7 @@ export default function Reports() {
                   {avgRainfall} mm
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  This reporting period
+                  Recent weather average
                 </p>
               </div>
             </div>
@@ -231,22 +252,19 @@ export default function Reports() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-600 border-b">
-                    <th className="py-2">Report</th>
-                    <th className="py-2">Crop</th>
                     <th className="py-2">Date</th>
                     <th className="py-2">Farmer</th>
+                    <th className="py-2">Crop</th>
                     <th className="py-2">Status</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {filteredReports.slice(0, 10).map((r) => (
                     <tr key={r._id} className="border-b hover:bg-gray-50">
-                      <td className="py-2">{r.title}</td>
-                      <td className="py-2">{r.crop}</td>
-                      <td className="py-2">
-                        {r.date.toLocaleDateString()}
-                      </td>
+                      <td className="py-2">{r.date.toLocaleDateString()}</td>
                       <td className="py-2">{r.farmer}</td>
+                      <td className="py-2">{r.crop}</td>
                       <td
                         className={`py-2 font-medium ${
                           r.completed ? "text-green-600" : "text-red-600"
@@ -259,10 +277,7 @@ export default function Reports() {
 
                   {filteredReports.length === 0 && (
                     <tr>
-                      <td
-                        colSpan="5"
-                        className="text-center py-4 text-gray-500"
-                      >
+                      <td colSpan="4" className="text-center py-4 text-gray-500">
                         No reports found.
                       </td>
                     </tr>
@@ -273,7 +288,7 @@ export default function Reports() {
           </div>
         )}
 
-        {/* ========================= CROP TAB ========================= */}
+        {/* ==================== CROP TAB ==================== */}
         {activeTab === "crop" && (
           <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-700 mb-3">
@@ -281,13 +296,14 @@ export default function Reports() {
             </h3>
 
             <table className="w-full text-sm">
-              <thead className="border-b text-gray-600">
-                <tr>
-                  <th className="py-2 text-left">Farmer</th>
-                  <th className="py-2 text-left">Crop</th>
-                  <th className="py-2 text-left">Kilos (kg)</th>
+              <thead>
+                <tr className="text-left text-gray-600 border-b">
+                  <th className="py-2">Farmer</th>
+                  <th className="py-2">Crop</th>
+                  <th className="py-2">Kilos (kg)</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredCrops.map((c) => (
                   <tr key={c._id} className="border-b hover:bg-gray-50">
@@ -312,7 +328,7 @@ export default function Reports() {
           </div>
         )}
 
-        {/* ========================= WEATHER TAB ========================= */}
+        {/* ==================== WEATHER TAB ==================== */}
         {activeTab === "weather" && (
           <div className="bg-emerald-50 rounded-2xl p-5 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-700 mb-3">
@@ -328,7 +344,7 @@ export default function Reports() {
                   {avgRainfall} mm
                 </p>
                 <p className="text-sm text-gray-500">
-                  This reporting period
+                  Based on last weather entries
                 </p>
               </div>
             </div>
@@ -337,16 +353,14 @@ export default function Reports() {
               <thead className="border-b text-gray-600">
                 <tr>
                   <th className="py-2 text-left">Date</th>
-                  <th className="py-2 text-left">Temperature (°C)</th>
+                  <th className="py-2 text-left">Temp (°C)</th>
                   <th className="py-2 text-left">Rainfall (mm)</th>
                 </tr>
               </thead>
+
               <tbody>
                 {weather.map((w) => (
-                  <tr
-                    key={w._id}
-                    className="border-b hover:bg-gray-50"
-                  >
+                  <tr key={w._id} className="border-b hover:bg-gray-50">
                     <td className="py-2">
                       {new Date(w.date).toLocaleDateString()}
                     </td>
