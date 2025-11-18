@@ -234,7 +234,7 @@ setCropFilterList(cList);
   }
 
   try {
-    const res = await axios.post(${baseUrl}/users, {
+    const res = await axios.post(`${baseUrl}/users`, {
       username: newFarmer.username,
       phone: newFarmer.phone,
       email: newFarmer.email,
