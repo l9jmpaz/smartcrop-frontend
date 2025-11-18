@@ -164,13 +164,14 @@ setCropFilterList(cList);
      FETCH YIELD RECORDS
   ============================================================ */
   const fetchYieldRecords = async () => {
-    try {
-      const res = await axios.get(`${baseUrl}/farm/${user.id}/yield`);
-      if (res.data.success) setYieldRecords(res.data.data);
-    } catch {
-      toast.error("Failed to load yield data");
-    }
-  };
+  try {
+    const res = await axios.get(`${baseUrl}/farm/yield`);
+    if (res.data.success) setYieldRecords(res.data.data);
+  } catch {
+    toast.error("Failed to load yield data");
+  }
+};
+
 
   /* ============================================================
      DELETE FARMER
