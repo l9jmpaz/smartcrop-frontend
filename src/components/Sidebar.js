@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { id: "feedback", icon: "💬", label: "Feedback" },
   { id: "reports", icon: "📑", label: "Reports" },
   { id: "settings", icon: "⚙️", label: "Settings" },
+   { id: "archived", icon: "📦", label: "Archived Data" },
 ];
 
 export default function Sidebar({ active, setActive, onLogout, unreadCount }) {
