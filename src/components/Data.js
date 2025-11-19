@@ -537,21 +537,7 @@ const handleAddFarmer = async (e) => {
         <div className="bg-white rounded-xl p-6 shadow">
           <div className="flex justify-between items-center mb-4">
             {/* Crop Filter */}
-<div className="mb-4">
-  <select
-    value={cropFilter}
-    onChange={(e) => setCropFilter(e.target.value)}
-    className="border p-2 rounded"
-  >
-    <option value="all">All Crops</option>
-    {allCrops.map((crop, index) => (
-      <option key={index} value={crop}>
-        {crop}
-      </option>
-    ))}
-  </select>
-  
-</div>
+
 <div className="flex gap-4 mb-4">
 
   {/* CROP SELECT FILTER (Existing) */}
