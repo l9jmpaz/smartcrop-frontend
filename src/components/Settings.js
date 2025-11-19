@@ -6,6 +6,8 @@ const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 const token = localStorage.getItem("token");
 const userId = localStorage.getItem("userId");
 
+
+
 const barangays = [
   "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan",
   "Balele","Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog","Boot",
