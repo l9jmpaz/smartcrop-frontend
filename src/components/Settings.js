@@ -3,12 +3,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
-
-
-
-
-// 🔒 Always use the correct ADMIN ID
-const userId = "691d3e97445938f294966ccf";
+const token = localStorage.getItem("token");
+const userId = localStorage.getItem("userId");
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
@@ -20,14 +16,16 @@ export default function Settings() {
     barangay: "",
   });
 
-  const [passwords, setPasswords] = useState({
-    oldPassword: "",
-    newPassword: "",
-  });
+  // Modal states
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  // ========================================================
-  // LOAD USER (always loads correct admin)
-  // ========================================================
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  // ===========================
+  // LOAD USER
+  // ===========================
   const loadUser = async () => {
     try {
       const res = await axios.get(`${baseUrl}/users/${userId}`);
@@ -39,6 +37,7 @@ export default function Settings() {
         phone: u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
         barangay: u.barangay,
       });
+
     } catch (err) {
       console.error("Load user failed:", err);
     } finally {
@@ -50,142 +49,180 @@ export default function Settings() {
     loadUser();
   }, []);
 
-  // ========================================================
-  // SAVE PROFILE (only username)
-  // ========================================================
-  const saveProfile = async () => {
-    const payload = {
-      username: profileData.username,
-      email: profileData.email,
-      phone: `+63${profileData.phone}`,
-      barangay: profileData.barangay,
-    };
-
+  // ===========================
+  // UPDATE USERNAME
+  // ===========================
+  const updateUsername = async () => {
     try {
-      const res = await axios.put(`${baseUrl}/users/${userId}`, payload);
-      alert("Profile updated!");
+      await axios.put(`${baseUrl}/users/${userId}`, {
+        username: newUsername,
+      });
+
+      alert("Username updated!");
+      setShowUsernameModal(false);
       loadUser();
     } catch (err) {
-      console.error("Update failed:", err);
-      alert("Failed to update profile.");
+      alert("Failed to update username.");
+      console.error(err);
     }
   };
 
-  // ========================================================
-  // CHANGE PASSWORD
-  // ========================================================
-  const savePassword = async () => {
-    if (!passwords.oldPassword || !passwords.newPassword) {
-      alert("Both fields required.");
-      return;
-    }
-
+  // ===========================
+  // UPDATE PASSWORD
+  // ===========================
+  const updatePassword = async () => {
     try {
-      await axios.put(`${baseUrl}/users/${userId}/password`, passwords);
+      await axios.post(`${baseUrl}/auth/change-password`, {
+        phone: `+63${profileData.phone}`,
+        newPassword,
+      });
+
       alert("Password updated!");
-      setPasswords({ oldPassword: "", newPassword: "" });
+      setNewPassword("");
+      setShowPasswordModal(false);
     } catch (err) {
-      console.error("Password error:", err);
-      alert("Incorrect old password.");
+      alert("Failed to update password.");
+      console.error(err);
     }
   };
 
   if (loading) return <p className="p-6 text-gray-500">Loading...</p>;
 
-  // ========================================================
-  // UI
-  // ========================================================
   return (
     <section className="p-6 max-w-lg mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-emerald-700 text-center">
-        Admin Settings
-      </h2>
 
-      {/* PROFILE CARD */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-emerald-700">
-          Profile Information
-        </h3>
+      {/* MAIN CARD */}
+      <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 space-y-4">
+        <h2 className="text-xl font-bold text-emerald-700">Admin Profile</h2>
 
-        {/* Username editable */}
-        <label className="block text-sm font-medium mb-1">Username</label>
-        <input
-          className="w-full border rounded-lg px-3 py-2 mb-4"
-          value={profileData.username}
-          onChange={(e) =>
-            setProfileData({ ...profileData, username: e.target.value })
-          }
-          placeholder="Full Name"
-        />
-
-        {/* Email readonly */}
-        <label className="block text-sm font-medium mb-1">Email</label>
-        <input
-          className="w-full border rounded-lg px-3 py-2 mb-4 bg-gray-100"
-          value={profileData.email}
-          readOnly
-        />
-
-        {/* Phone readonly */}
-        <label className="block text-sm font-medium mb-1">Phone</label>
-        <div className="flex items-center border rounded-lg px-3 py-2 mb-4 bg-gray-100">
-          <span className="text-gray-600 font-medium">+63</span>
-          <input
-            className="w-full ml-2 bg-gray-100 outline-none"
-            value={profileData.phone}
-            readOnly
+        {/* USERNAME */}
+        <div className="space-y-1">
+          <label className="font-medium text-gray-600">Username</label>
+          <input 
+            className="w-full border px-3 py-2 rounded-lg bg-gray-100"
+            value={profileData.username}
+            disabled
           />
         </div>
 
-        {/* Barangay readonly */}
-        <label className="block text-sm font-medium mb-1">Barangay</label>
-        <input
-          className="w-full border rounded-lg px-3 py-2 mb-6 bg-gray-100"
-          value={profileData.barangay}
-          readOnly
-        />
+        {/* EMAIL */}
+        <div className="space-y-1">
+          <label className="font-medium text-gray-600">Email</label>
+          <input 
+            className="w-full border px-3 py-2 rounded-lg bg-gray-100"
+            value={profileData.email}
+            disabled
+          />
+        </div>
 
-        <button
-          onClick={saveProfile}
-          className="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium"
-        >
-          Save Profile
-        </button>
+        {/* PHONE */}
+        <div className="space-y-1">
+          <label className="font-medium text-gray-600">Phone</label>
+          <input 
+            className="w-full border px-3 py-2 rounded-lg bg-gray-100"
+            value={`+63${profileData.phone}`}
+            disabled
+          />
+        </div>
+
+        {/* BARANGAY */}
+        <div className="space-y-1">
+          <label className="font-medium text-gray-600">Barangay</label>
+          <input 
+            className="w-full border px-3 py-2 rounded-lg bg-gray-100"
+            value={profileData.barangay}
+            disabled
+          />
+        </div>
+
+        {/* BUTTONS */}
+        <div className="flex gap-3 pt-4">
+          <button
+            onClick={() => {
+              setNewUsername(profileData.username);
+              setShowUsernameModal(true);
+            }}
+            className="flex-1 bg-emerald-600 text-white py-2 rounded-lg font-semibold"
+          >
+            Change Username
+          </button>
+
+          <button
+            onClick={() => setShowPasswordModal(true)}
+            className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold"
+          >
+            Change Password
+          </button>
+        </div>
       </div>
 
-      {/* PASSWORD CARD */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-emerald-700">
-          Change Password
-        </h3>
+      {/* ======================== USERNAME MODAL ======================== */}
+      {showUsernameModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl relative">
 
-        <label className="block text-sm font-medium mb-1">Old Password</label>
-        <input
-          type="password"
-          className="w-full border rounded-lg px-3 py-2 mb-4"
-          value={passwords.oldPassword}
-          onChange={(e) =>
-            setPasswords({ ...passwords, oldPassword: e.target.value })
-          }
-        />
+            <h3 className="text-lg font-bold mb-4">Change Username</h3>
 
-        <label className="block text-sm font-medium mb-1">New Password</label>
-        <input
-          type="password"
-          className="w-full border rounded-lg px-3 py-2 mb-6"
-          value={passwords.newPassword}
-          onChange={(e) =>
-            setPasswords({ ...passwords, newPassword: e.target.value })
-          }
-        />
+            <input
+              className="w-full border px-3 py-2 rounded-lg"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+            />
 
-        <button
-          onClick={savePassword}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium"
-        >
-          Update Password
-        </button>
-      </div>
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => setShowUsernameModal(false)}
+                className="px-4 py-2 rounded-lg border"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={updateUsername}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================== PASSWORD MODAL ======================== */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+
+            <h3 className="text-lg font-bold mb-4">Change Password</h3>
+
+            <input
+              type="password"
+              className="w-full border px-3 py-2 rounded-lg"
+              placeholder="New Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="px-4 py-2 rounded-lg border"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={updatePassword}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+              >
+                Save
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }
