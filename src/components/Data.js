@@ -44,7 +44,9 @@ const [allCrops, setAllCrops] = useState([]);
   const [selectedCropField, setSelectedCropField] = useState(null);
 const [cropFilter, setCropFilter] = useState("all");
 const [cropFilterList, setCropFilterList] = useState([]);
-
+const [commonCropFilter, setCommonCropFilter] = useState("all");
+const [commonMonthlyCrop, setCommonMonthlyCrop] = useState(null);
+const [commonYearlyCrop, setCommonYearlyCrop] = useState(null);
  const [newFarmer, setNewFarmer] = useState({
   username: "",
   email: "",
@@ -107,6 +109,54 @@ const fetchAllCrops = async () => {
       );
 
       setFarmers(farmsWithUsers);
+      // ============================================================
+// COMMON CROP ANALYSIS (MONTHLY + YEARLY)
+// ============================================================
+let monthlyCount = {};  // { "January": {corn: 3, rice: 1}, ... }
+let yearlyCount = {};   // { "2024": {corn: 5, onion: 2}, ... }
+
+farmsWithUsers.forEach((farmer) => {
+  farmer.farms.forEach((fm) => {
+    if (!fm.selectedCrop || !fm.completedAt) return;
+
+    const d = new Date(fm.completedAt);
+    const month = d.toLocaleString("default", { month: "long" });
+    const year = d.getFullYear();
+    const crop = fm.selectedCrop.toLowerCase();
+
+    // Monthly
+    if (!monthlyCount[month]) monthlyCount[month] = {};
+    monthlyCount[month][crop] = (monthlyCount[month][crop] || 0) + 1;
+
+    // Yearly
+    if (!yearlyCount[year]) yearlyCount[year] = {};
+    yearlyCount[year][crop] = (yearlyCount[year][crop] || 0) + 1;
+  });
+});
+
+// FIND MOST COMMON MONTHLY CROP
+let commonMonthly = null;
+Object.keys(monthlyCount).forEach((month) => {
+  const crops = monthlyCount[month];
+  const top = Object.keys(crops).reduce((a, b) =>
+    crops[a] > crops[b] ? a : b
+  );
+  if (!commonMonthly) commonMonthly = top;
+});
+
+// FIND MOST COMMON YEARLY CROP
+let commonYearly = null;
+Object.keys(yearlyCount).forEach((year) => {
+  const crops = yearlyCount[year];
+  const top = Object.keys(crops).reduce((a, b) =>
+    crops[a] > crops[b] ? a : b
+  );
+  if (!commonYearly) commonYearly = top;
+});
+
+setCommonMonthlyCrop(commonMonthly);
+setCommonYearlyCrop(commonYearly);
+
       // ----- CALCULATE YIELD TREND -----
 // ----- CALCULATE YIELD TREND USING BACKEND -----
 for (const farmer of farmsWithUsers) {
@@ -500,7 +550,37 @@ const handleAddFarmer = async (e) => {
       </option>
     ))}
   </select>
+  
 </div>
+<div className="flex gap-4 mb-4">
+
+  {/* CROP SELECT FILTER (Existing) */}
+  <select
+    value={cropFilter}
+    onChange={(e) => setCropFilter(e.target.value)}
+    className="border p-2 rounded"
+  >
+    <option value="all">All Crops</option>
+    {allCrops.map((crop, index) => (
+      <option key={index} value={crop}>
+        {crop}
+      </option>
+    ))}
+  </select>
+
+  {/* COMMON CROP FILTER (NEW) */}
+  <select
+    value={commonCropFilter}
+    onChange={(e) => setCommonCropFilter(e.target.value)}
+    className="border p-2 rounded"
+  >
+    <option value="all">All</option>
+    <option value="monthly">Monthly Common Crop</option>
+    <option value="yearly">Yearly Common Crop</option>
+  </select>
+  
+</div>
+
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Leaf className="text-green-600" size={20} /> Crop Records
             </h2>
@@ -558,9 +638,22 @@ const handleAddFarmer = async (e) => {
 
   // 👉 NOW APPLY CROP FILTER
   const filteredFields = fieldsWithCrop.filter((fm) => {
-    if (cropFilter === "all") return true;
-    return fm.selectedCrop.toLowerCase() === cropFilter.toLowerCase();
-  });
+  const crop = fm.selectedCrop?.toLowerCase();
+
+  // Normal crop filter
+  if (cropFilter !== "all" && crop !== cropFilter.toLowerCase()) 
+    return false;
+
+  // Common Monthly
+  if (commonCropFilter === "monthly" && crop !== commonMonthlyCrop)
+    return false;
+
+  // Common Yearly
+  if (commonCropFilter === "yearly" && crop !== commonYearlyCrop)
+    return false;
+
+  return true;
+});
 
   return filteredFields.map((fm) => (
     <tr key={fm._id} className="border-b hover:bg-gray-50">
