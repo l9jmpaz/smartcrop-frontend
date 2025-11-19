@@ -79,7 +79,7 @@ export default function Settings() {
         {
           username: profileData.username,
           email: profileData.email,
-          phone: `+63${profileData.phone}`,
+          phone: `+63${profileData.phone.trim()}`,
           barangay: profileData.barangay,
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -143,15 +143,16 @@ export default function Settings() {
 
         <div className="flex border rounded-lg px-3 py-2 gap-2 items-center">
           <span className="text-gray-600 text-sm font-medium">+63</span>
-          <input
-            type="number"
-            value={profileData.phone}
-            onChange={(e) =>
-              setProfileData({ ...profileData, phone: e.target.value.slice(0, 10) })
-            }
-            placeholder="9123456789"
-            className="w-full outline-none"
-          />
+         <input
+  type="number"
+  value={profileData.phone}
+  onChange={(e) =>
+    setProfileData({
+      ...profileData,
+      phone: e.target.value.replace(/\D/g, "").slice(0, 10)
+    })
+  }
+/>
         </div>
 
         <select
