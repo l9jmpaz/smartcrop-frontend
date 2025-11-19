@@ -1,3 +1,4 @@
+// frontend/pages/Settings.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -22,78 +23,71 @@ export default function Settings() {
     username: "",
     email: "",
     phone: "",
-    barangay: "",
+    barangay: ""
   });
 
   const [passwords, setPasswords] = useState({
     oldPassword: "",
-    newPassword: "",
+    newPassword: ""
   });
 
-  // Load user
+  // Load user data
   const loadUser = async () => {
     try {
       const res = await axios.get(`${baseUrl}/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+
       });
 
       const u = res.data.data;
 
       setProfileData({
-        username: u.username || "",
-        email: u.email || "",
-        phone: u.phone?.startsWith("+63")
-  ? u.phone.substring(3).slice(0, 10)
-  : u.phone.slice(0, 10),
-        barangay: u.barangay || "",
+        username: u.username,
+        email: u.email,
+        phone: u.phone.replace("+63", ""),
+        barangay: u.barangay
       });
+
     } catch (err) {
-      console.error("Load user failed:", err);
+      console.error("Load user failed", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadUser(); }, []);
+  useEffect(() => {
+    loadUser();
+  }, []);
 
-  // Save profile
+  // Save Profile
   const saveProfile = async () => {
-    if (
-      !profileData.username ||
-      !profileData.email ||
-      !profileData.phone ||
-      !profileData.barangay
-    ) {
+    if (!profileData.username || !profileData.email || !profileData.phone || !profileData.barangay) {
       alert("All fields are required.");
       return;
     }
 
     if (profileData.phone.length !== 10) {
-      alert("Phone number must be exactly 10 digits.");
+      alert("Phone must be exactly 10 digits.");
       return;
     }
 
     try {
-      await axios.put(
-        `${baseUrl}/users/${userId}`,
-        {
-          username: profileData.username,
-          email: profileData.email,
-          phone: `+63${profileData.phone.trim()}`,
-          barangay: profileData.barangay,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.put(`${baseUrl}/users/${userId}`, {
+  username: profileData.username,
+  email: profileData.email,
+  phone: `+63${profileData.phone}`,
+  barangay: profileData.barangay,
+});
+
 
       alert("Profile updated!");
       loadUser();
     } catch (err) {
-      console.error(err);
-      alert("Update failed.");
+      console.error("Update failed:", err);
+      alert("Failed to update profile.");
     }
   };
 
-  // Change password
+  // Change Password
   const savePassword = async () => {
     if (!passwords.oldPassword || !passwords.newPassword) {
       alert("Both password fields are required.");
@@ -104,13 +98,14 @@ export default function Settings() {
       await axios.put(
         `${baseUrl}/users/${userId}/password`,
         passwords,
-        { headers: { Authorization: `Bearer ${token}` } }
+        
       );
 
       alert("Password updated!");
       setPasswords({ oldPassword: "", newPassword: "" });
+
     } catch (err) {
-      console.error(err);
+      console.error("Password error:", err);
       alert("Incorrect old password.");
     }
   };
@@ -122,43 +117,47 @@ export default function Settings() {
       <h2 className="text-2xl font-bold text-emerald-700">Admin Settings</h2>
 
       {/* PROFILE */}
-      <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm space-y-4">
-        <h3 className="text-lg font-semibold text-gray-700">Edit Profile</h3>
+      <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow space-y-4">
+        <h3 className="text-lg font-semibold">Edit Profile</h3>
 
         <input
-          type="text"
+          className="w-full border rounded-lg px-3 py-2"
           value={profileData.username}
-          onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
+          onChange={(e) =>
+            setProfileData({ ...profileData, username: e.target.value })
+          }
           placeholder="Full Name"
-          className="w-full border rounded-lg px-3 py-2"
         />
 
         <input
-          type="email"
-          value={profileData.email}
-          onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-          placeholder="Email"
           className="w-full border rounded-lg px-3 py-2"
+          value={profileData.email}
+          onChange={(e) =>
+            setProfileData({ ...profileData, email: e.target.value })
+          }
+          placeholder="Email"
         />
 
-        <div className="flex border rounded-lg px-3 py-2 gap-2 items-center">
-          <span className="text-gray-600 text-sm font-medium">+63</span>
-         <input
-  type="number"
-  value={profileData.phone}
-  onChange={(e) =>
-    setProfileData({
-      ...profileData,
-      phone: e.target.value.replace(/\D/g, "").slice(0, 10)
-    })
-  }
-/>
+        <div className="flex items-center border rounded-lg px-3 py-2 gap-2">
+          <span className="text-gray-600 font-medium">+63</span>
+          <input
+            type="number"
+            value={profileData.phone}
+            onChange={(e) =>
+              setProfileData({
+                ...profileData,
+                phone: e.target.value.replace(/\D/g, "").slice(0, 10)
+              })
+            }
+            placeholder="9123456789"
+            className="w-full outline-none"
+          />
         </div>
 
         <select
+          className="w-full border rounded-lg px-3 py-2"
           value={profileData.barangay}
           onChange={(e) => setProfileData({ ...profileData, barangay: e.target.value })}
-          className="w-full border rounded-lg px-3 py-2"
         >
           <option value="">Select Barangay</option>
           {barangays.map((b) => (
@@ -168,35 +167,39 @@ export default function Settings() {
 
         <button
           onClick={saveProfile}
-          className="bg-emerald-600 text-white w-full py-2 rounded-lg hover:bg-emerald-700"
+          className="w-full bg-emerald-600 text-white py-2 rounded-lg"
         >
           Save Profile
         </button>
       </div>
 
       {/* PASSWORD */}
-      <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm space-y-4">
-        <h3 className="text-lg font-semibold text-gray-700">Change Password</h3>
+      <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow space-y-4">
+        <h3 className="text-lg font-semibold">Change Password</h3>
 
         <input
           type="password"
+          className="w-full border rounded-lg px-3 py-2"
           placeholder="Old Password"
           value={passwords.oldPassword}
-          onChange={(e) => setPasswords({ ...passwords, oldPassword: e.target.value })}
-          className="w-full border rounded-lg px-3 py-2"
+          onChange={(e) =>
+            setPasswords({ ...passwords, oldPassword: e.target.value })
+          }
         />
 
         <input
           type="password"
+          className="w-full border rounded-lg px-3 py-2"
           placeholder="New Password"
           value={passwords.newPassword}
-          onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-          className="w-full border rounded-lg px-3 py-2"
+          onChange={(e) =>
+            setPasswords({ ...passwords, newPassword: e.target.value })
+          }
         />
 
         <button
           onClick={savePassword}
-          className="bg-blue-600 text-white w-full py-2 rounded-lg hover:bg-blue-700"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg"
         >
           Update Password
         </button>
