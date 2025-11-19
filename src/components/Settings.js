@@ -6,8 +6,6 @@ const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 const token = localStorage.getItem("token");
 const userId = localStorage.getItem("userId");
 
-
-
 const barangays = [
   "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan",
   "Balele","Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog","Boot",
@@ -37,28 +35,32 @@ export default function Settings() {
   // LOAD USER
   // ========================================================
   const loadUser = async () => {
-    try {
-      const res = await axios.get(`${baseUrl}/users/${userId}`);
+  try {
+    console.log(
+      "Loading user from:",
+      `${baseUrl}/users/${userId}`,
+      "token:",
+      !!token
+    );
 
-      const u = res.data.data;
+    const res = await axios.get(`${baseUrl}/users/${userId}`);
 
-      // Clean phone: remove +63, or 63, or 0 at start
-      let cleanedPhone = u.phone || "";
-      cleanedPhone = cleanedPhone.replace(/^(\+63|63|0)/, "");
+    const u = res.data.data;
 
-      setProfileData({
-        username: u.username || "",
-        email: u.email || "",
-        phone: u.phone && u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
-        barangay: u.barangay || "",
-      });
+    setProfileData({
+      username: u.username,
+      email: u.email,
+      phone: u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
+      barangay: u.barangay
+    });
 
-    } catch (err) {
-      console.error("Load user failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    console.error("Load user failed:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     loadUser();
@@ -67,38 +69,44 @@ export default function Settings() {
   // ========================================================
   // SAVE PROFILE
   // ========================================================
-  const saveProfile = async () => {
-    if (!profileData.username || !profileData.email || !profileData.phone || !profileData.barangay) {
-      alert("All fields are required.");
-      return;
-    }
+  // Save profile
+const saveProfile = async () => {
+  if (!profileData.username || !profileData.email || !profileData.phone || !profileData.barangay) {
+    alert("All fields are required.");
+    return;
+  }
 
-    if (!/^[0-9]{10}$/.test(profileData.phone)) {
-      alert("Phone must be exactly 10 digits (e.g., 9123456789).");
-      return;
-    }
+  if (profileData.phone.length !== 10) {
+    alert("Phone must be exactly 10 digits.");
+    return;
+  }
 
-    try {
-      await axios.put(
-  `${baseUrl}/users/${userId}`,
-  {
+  // DEBUG: show payload
+  const payload = {
     username: profileData.username,
     email: profileData.email,
     phone: `+63${profileData.phone}`,
     barangay: profileData.barangay,
-  },
-  {
-    headers: { "Content-Type": "application/json" }
-  }
-);
-
-      alert("Profile updated!");
-      loadUser();
-    } catch (err) {
-      console.error("Update failed:", err);
-      alert("Failed to update profile.");
-    }
   };
+  console.log("Saving profile -> PUT", `${baseUrl}/users/${userId}, "payload:"`, payload);
+
+  try {
+    const res = await axios.put(`${baseUrl}/users/${userId}, payload`, {
+      // include token only if your backend requires it:
+    
+    });
+
+    console.log("Update response:", res && res.data);
+    alert("Profile updated!");
+    loadUser();
+  } catch (err) {
+    // show detailed error in console
+    console.error("Update failed (axios error):", err);
+    console.error("Response data / status:", err.response?.status, err.response?.data);
+    alert("Failed to update profile. See console for details.");
+  }
+};
+
 
   // ========================================================
   // CHANGE PASSWORD
