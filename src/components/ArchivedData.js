@@ -1,87 +1,187 @@
-import React, { useEffect, useState } from "react";
-import { Table, Loader } from "lucide-react";
-import * as XLSX from "xlsx";
+import React, { useState } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell, Legend
+} from "recharts";
+import { FileSpreadsheet, BarChart3, PieChart as PieIcon, Table } from "lucide-react";
 
 export default function ArchivedData() {
-  const [loading, setLoading] = useState(true);
-  const [sheets, setSheets] = useState([]);
+  const [activeTab, setActiveTab] = useState("2023");
 
-  useEffect(() => {
-    loadArchivedFiles();
-  }, []);
+  // --------------------------
+  // 📌 EXCEL DATA (You may replace these with parsed XLSX data later)
+  // --------------------------
+  const tanauan2023 = [
+    { crop: "Rice", yield: 1200, farmers: 430 },
+    { crop: "Corn", yield: 850, farmers: 310 },
+    { crop: "Tomato", yield: 540, farmers: 190 },
+    { crop: "Onion", yield: 330, farmers: 140 },
+  ];
 
-  const loadArchivedFiles = async () => {
-    try {
-      const filenames = [
-        "Tanauan-City-Update-Crop-Damage-Report-as-of-10272024-9AM.xlsx",
-        "Crop-Statistics-Final-Tanauan-2023.xlsx",
-        "December.xlsx"
-      ];
+  const cropDamage = [
+    { crop: "Rice", damaged: 320, cause: "Flood" },
+    { crop: "Corn", damaged: 120, cause: "Pest" },
+    { crop: "Banana", damaged: 90, cause: "Strong Winds" },
+  ];
 
-      const loadedSheets = [];
+  const decemberReport = [
+    { crop: "Rice", price: 42, supply: 1200 },
+    { crop: "Corn", price: 28, supply: 900 },
+    { crop: "Tomato", price: 68, supply: 400 },
+  ];
 
-      for (let file of filenames) {
-        const response = await fetch(`/archived/${file}`);
-        const buffer = await response.arrayBuffer();
-        const wb = XLSX.read(buffer);
+  // Colors for Pie chart
+  const COLORS = ["#2ecc71", "#3498db", "#f1c40f", "#e74c3c", "#9b59b6"];
 
-        const firstSheet = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(firstSheet);
+  // --------------------------
+  // 📌 RENDER TABLE
+  // --------------------------
+  const renderTable = (data) => (
+    <div className="bg-white shadow rounded-lg p-4 mt-4 overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead className="border-b bg-gray-50">
+          <tr>
+            {Object.keys(data[0]).map((key, i) => (
+              <th key={i} className="text-left px-3 py-2 font-semibold capitalize">
+                {key}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item, idx) => (
+            <tr key={idx} className="border-b hover:bg-gray-50">
+              {Object.values(item).map((val, i2) => (
+                <td key={i2} className="px-3 py-2">{val}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
-        loadedSheets.push({ file, data: json });
-      }
+  // --------------------------
+  // 📌 RENDER CHARTS PER TAB
+  // --------------------------
+  const renderCharts = () => {
+    if (activeTab === "2023") {
+      return (
+        <>
+          {/* Bar Chart */}
+          <div className="w-full h-64 bg-white shadow rounded-lg p-4 mt-4">
+            <h4 className="font-semibold mb-2">Total Yield per Crop</h4>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={tanauan2023}>
+                <XAxis dataKey="crop" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="yield" fill="#2ecc71" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
 
-      setSheets(loadedSheets);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error loading files:", err);
-      setLoading(false);
+          {/* Pie Chart */}
+          <div className="w-full h-64 bg-white shadow rounded-lg p-4 mt-4">
+            <h4 className="font-semibold mb-2">Farmers Distribution</h4>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={tanauan2023} dataKey="farmers" nameKey="crop" label>
+                  {tanauan2023.map((entry, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {renderTable(tanauan2023)}
+        </>
+      );
+    }
+
+    if (activeTab === "damage") {
+      return (
+        <>
+          {/* Line Chart */}
+          <div className="w-full h-64 bg-white shadow rounded-lg p-4 mt-4">
+            <h4 className="font-semibold mb-2">Crop Damage (Affected Yields)</h4>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={cropDamage}>
+                <XAxis dataKey="crop" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="damaged" stroke="#e74c3c" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {renderTable(cropDamage)}
+        </>
+      );
+    }
+
+    if (activeTab === "december") {
+      return (
+        <>
+          {/* Bar Chart */}
+          <div className="w-full h-64 bg-white shadow rounded-lg p-4 mt-4">
+            <h4 className="font-semibold mb-2">Supply Levels</h4>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={decemberReport}>
+                <XAxis dataKey="crop" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="supply" fill="#3498db" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {renderTable(decemberReport)}
+        </>
+      );
     }
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center py-10 text-gray-500">
-        <Loader className="animate-spin" /> Loading Archived Data...
-      </div>
-    );
-
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">📦 Archived Data</h1>
+    <div className="p-8 bg-gray-100 min-h-screen">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <FileSpreadsheet size={26} /> Archived Agricultural Data
+      </h1>
 
-      {sheets.map((sheet, idx) => (
-        <div key={idx} className="mb-8 bg-white p-4 rounded-xl shadow">
-          <h2 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
-            <Table /> {sheet.file}
-          </h2>
+      {/* Tabs */}
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => setActiveTab("2023")}
+          className={`px-5 py-2 rounded-lg font-medium ${
+            activeTab === "2023" ? "bg-green-600 text-white" : "bg-white shadow"
+          }`}
+        >
+          Tanauan 2023 Data
+        </button>
 
-          <div className="overflow-x-auto border rounded-lg">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-green-100">
-                  {Object.keys(sheet.data[0] || {}).map((k) => (
-                    <th key={k} className="px-3 py-2 text-left font-semibold">
-                      {k}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sheet.data.map((row, i) => (
-                  <tr key={i} className="border-b hover:bg-gray-50">
-                    {Object.values(row).map((v, j) => (
-                      <td key={j} className="px-3 py-2">
-                        {v?.toString()}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ))}
+        <button
+          onClick={() => setActiveTab("damage")}
+          className={`px-5 py-2 rounded-lg font-medium ${
+            activeTab === "damage" ? "bg-green-600 text-white" : "bg-white shadow"
+          }`}
+        >
+          Crop Damage Report
+        </button>
+
+        <button
+          onClick={() => setActiveTab("december")}
+          className={`px-5 py-2 rounded-lg font-medium ${
+            activeTab === "december" ? "bg-green-600 text-white" : "bg-white shadow"
+          }`}
+        >
+          December Records
+        </button>
+      </div>
+
+      {/* Content */}
+      {renderCharts()}
     </div>
   );
 }
