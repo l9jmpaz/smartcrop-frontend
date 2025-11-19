@@ -7,6 +7,8 @@ import Reports from "./components/Reports";
 import Notifications from "./components/Notifications";
 import Settings from "./components/Settings";
 import AdminLogin from "./components/AdminLogin";
+import ArchivedData from "./components/ArchivedData";
+
 
 export default function App() {
   const [active, setActive] = useState("dashboard");
@@ -56,6 +58,7 @@ export default function App() {
         {active === "data" && <DataTab />}
         {active === "feedback" && <Feedback />}
         {active === "reports" && <Reports />}
+       {active === "archived" && <ArchivedData />}
         {active === "notifications" && (
           <Notifications onUnreadCountChange={setUnreadCount} />
         )}
