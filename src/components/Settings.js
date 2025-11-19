@@ -23,32 +23,36 @@ export default function Settings() {
     username: "",
     email: "",
     phone: "",
-    barangay: ""
+    barangay: "",
   });
 
   const [passwords, setPasswords] = useState({
     oldPassword: "",
-    newPassword: ""
+    newPassword: "",
   });
 
-  // Load user data
+  // ========================================================
+  // LOAD USER
+  // ========================================================
   const loadUser = async () => {
     try {
-      const res = await axios.get(`${baseUrl}/users/${userId}`, {
-
-      });
+      const res = await axios.get(`${baseUrl}/users/${userId}`);
 
       const u = res.data.data;
 
+      // Clean phone: remove +63, or 63, or 0 at start
+      let cleanedPhone = u.phone || "";
+      cleanedPhone = cleanedPhone.replace(/^(\+63|63|0)/, "");
+
       setProfileData({
-        username: u.username,
-        email: u.email,
-        phone: u.phone.replace("+63", ""),
-        barangay: u.barangay
+        username: u.username || "",
+        email: u.email || "",
+        phone: cleanedPhone,
+        barangay: u.barangay || "",
       });
 
     } catch (err) {
-      console.error("Load user failed", err);
+      console.error("Load user failed:", err);
     } finally {
       setLoading(false);
     }
@@ -58,26 +62,30 @@ export default function Settings() {
     loadUser();
   }, []);
 
-  // Save Profile
+  // ========================================================
+  // SAVE PROFILE
+  // ========================================================
   const saveProfile = async () => {
     if (!profileData.username || !profileData.email || !profileData.phone || !profileData.barangay) {
       alert("All fields are required.");
       return;
     }
 
-    if (profileData.phone.length !== 10) {
-      alert("Phone must be exactly 10 digits.");
+    if (!/^[0-9]{10}$/.test(profileData.phone)) {
+      alert("Phone must be exactly 10 digits (e.g., 9123456789).");
       return;
     }
 
     try {
-      await axios.put(`${baseUrl}/users/${userId}`, {
-  username: profileData.username,
-  email: profileData.email,
-  phone: `+63${profileData.phone}`,
-  barangay: profileData.barangay,
-});
-
+      await axios.put(
+        `${baseUrl}/users/${userId}`,
+        {
+          username: profileData.username,
+          email: profileData.email,
+          phone: `+63${profileData.phone}`,
+          barangay: profileData.barangay,
+        }
+      );
 
       alert("Profile updated!");
       loadUser();
@@ -87,7 +95,9 @@ export default function Settings() {
     }
   };
 
-  // Change Password
+  // ========================================================
+  // CHANGE PASSWORD
+  // ========================================================
   const savePassword = async () => {
     if (!passwords.oldPassword || !passwords.newPassword) {
       alert("Both password fields are required.");
@@ -97,13 +107,11 @@ export default function Settings() {
     try {
       await axios.put(
         `${baseUrl}/users/${userId}/password`,
-        passwords,
-        
+        passwords
       );
 
       alert("Password updated!");
       setPasswords({ oldPassword: "", newPassword: "" });
-
     } catch (err) {
       console.error("Password error:", err);
       alert("Incorrect old password.");
@@ -112,6 +120,9 @@ export default function Settings() {
 
   if (loading) return <p className="p-6 text-gray-500">Loading...</p>;
 
+  // ========================================================
+  // UI
+  // ========================================================
   return (
     <section className="p-6 max-w-lg mx-auto space-y-6">
       <h2 className="text-2xl font-bold text-emerald-700">Admin Settings</h2>
@@ -120,6 +131,7 @@ export default function Settings() {
       <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow space-y-4">
         <h3 className="text-lg font-semibold">Edit Profile</h3>
 
+        {/* USERNAME */}
         <input
           className="w-full border rounded-lg px-3 py-2"
           value={profileData.username}
@@ -129,7 +141,9 @@ export default function Settings() {
           placeholder="Full Name"
         />
 
+        {/* EMAIL */}
         <input
+          type="email"
           className="w-full border rounded-lg px-3 py-2"
           value={profileData.email}
           onChange={(e) =>
@@ -138,26 +152,31 @@ export default function Settings() {
           placeholder="Email"
         />
 
+        {/* PHONE */}
         <div className="flex items-center border rounded-lg px-3 py-2 gap-2">
           <span className="text-gray-600 font-medium">+63</span>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            className="w-full outline-none"
             value={profileData.phone}
             onChange={(e) =>
               setProfileData({
                 ...profileData,
-                phone: e.target.value.replace(/\D/g, "").slice(0, 10)
+                phone: e.target.value.replace(/\D/g, "").slice(0, 10),
               })
             }
             placeholder="9123456789"
-            className="w-full outline-none"
           />
         </div>
 
+        {/* BARANGAY */}
         <select
           className="w-full border rounded-lg px-3 py-2"
           value={profileData.barangay}
-          onChange={(e) => setProfileData({ ...profileData, barangay: e.target.value })}
+          onChange={(e) =>
+            setProfileData({ ...profileData, barangay: e.target.value })
+          }
         >
           <option value="">Select Barangay</option>
           {barangays.map((b) => (
