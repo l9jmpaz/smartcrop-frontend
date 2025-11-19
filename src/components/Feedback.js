@@ -22,6 +22,11 @@ export default function Feedback() {
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [replyText, setReplyText] = useState("");
 
+  // 🔥 NEW FILTERS
+  const [month, setMonth] = useState("all");
+  const [year, setYear] = useState("all");
+  const [yearList, setYearList] = useState([]);
+
   // ============================================================
   // FETCH FEEDBACK
   // ============================================================
@@ -35,11 +40,32 @@ export default function Feedback() {
       if (res.data.success) {
         let data = res.data.data || [];
 
+        // 🌟 AUTO DETECT YEARS
+        const years = Array.from(
+          new Set(data.map((f) => new Date(f.date).getFullYear()))
+        ).sort((a, b) => b - a);
+        setYearList(years);
+
+        // USER SEARCH FILTER
         if (userFilter.trim()) {
           data = data.filter((f) =>
             f.userId?.username
               ?.toLowerCase()
               .includes(userFilter.toLowerCase())
+          );
+        }
+
+        // MONTH FILTER
+        if (month !== "all") {
+          data = data.filter(
+            (f) => new Date(f.date).getMonth() + 1 === Number(month)
+          );
+        }
+
+        // YEAR FILTER
+        if (year !== "all") {
+          data = data.filter(
+            (f) => new Date(f.date).getFullYear() === Number(year)
           );
         }
 
@@ -85,7 +111,7 @@ export default function Feedback() {
 
   useEffect(() => {
     fetchFeedback();
-  }, [filter, search, userFilter]);
+  }, [filter, search, userFilter, month, year]);
 
   // ============================================================
   // UI
@@ -109,9 +135,10 @@ export default function Feedback() {
         ))}
       </div>
 
-      {/* SEARCH & FILTER */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2 flex-1 min-w-[220px]">
+      {/* SEARCH, USER, MONTH & YEAR FILTER */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        {/* Search */}
+        <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2">
           <Search className="text-gray-400 mr-2" size={18} />
           <input
             type="text"
@@ -122,7 +149,8 @@ export default function Feedback() {
           />
         </div>
 
-        <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2 flex-1 min-w-[220px]">
+        {/* Filter by user */}
+        <div className="flex items-center bg-white rounded-full shadow-sm px-3 py-2">
           <User className="text-gray-400 mr-2" size={18} />
           <input
             type="text"
@@ -132,6 +160,34 @@ export default function Feedback() {
             onChange={(e) => setUserFilter(e.target.value)}
           />
         </div>
+
+        {/* Month Filter */}
+        <select
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          className="bg-white rounded-full shadow-sm px-3 py-2 border text-sm"
+        >
+          <option value="all">All Months</option>
+          {[...Array(12)].map((_, i) => (
+            <option key={i + 1} value={i + 1}>
+              {new Date(0, i).toLocaleString("default", { month: "long" })}
+            </option>
+          ))}
+        </select>
+
+        {/* Year Filter */}
+        <select
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="bg-white rounded-full shadow-sm px-3 py-2 border text-sm"
+        >
+          <option value="all">All Years</option>
+          {yearList.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* FEEDBACK TABLE */}
