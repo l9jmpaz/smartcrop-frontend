@@ -47,7 +47,7 @@ export default function Settings() {
       setProfileData({
         username: u.username || "",
         email: u.email || "",
-        phone: cleanedPhone,
+        pphone: u.phone && u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
         barangay: u.barangay || "",
       });
 
@@ -78,14 +78,17 @@ export default function Settings() {
 
     try {
       await axios.put(
-        `${baseUrl}/users/${userId}`,
-        {
-          username: profileData.username,
-          email: profileData.email,
-          phone: `+63${profileData.phone}`,
-          barangay: profileData.barangay,
-        }
-      );
+  `${baseUrl}/users/${userId}`,
+  {
+    username: profileData.username,
+    email: profileData.email,
+    phone: `+63${profileData.phone}`,
+    barangay: profileData.barangay,
+  },
+  {
+    headers: { "Content-Type": "application/json" }
+  }
+);
 
       alert("Profile updated!");
       loadUser();
