@@ -5,6 +5,8 @@ const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 const token = localStorage.getItem("token");
 const userId = localStorage.getItem("userId");
 
+
+
 // 48 Barangays — Clean & Sorted
 const barangays = [
   "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan",
