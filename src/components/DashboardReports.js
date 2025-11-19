@@ -56,7 +56,7 @@ export default function DashboardReports() {
         setCropYields(yieldData);
 
         // -------------------------------------------
-        // 2️⃣ Common Crops
+        // 2️⃣ Commonly Planted Crops
         // -------------------------------------------
         const cropCount = {};
         farms.forEach((farm) => {
@@ -75,45 +75,28 @@ export default function DashboardReports() {
         setCropFrequency(freqData);
 
         // -------------------------------------------
-        // 3️⃣ Yield Trends (Cleaned)
-        // Removes “undefined” and invalid dates
-        // Converts to fake sequential months: M1, M2, M3...
+        // 3️⃣ Yield Trends (Month + Year)
         // -------------------------------------------
         const monthly = {};
-
-        farms.forEach((farm) =>
+        farms.forEach((farm) => {
           (farm.tasks || []).forEach((task) => {
-            if (
-              task.type?.toLowerCase().includes("harvest") &&
-              task.date &&
-              !isNaN(new Date(task.date).getTime())
-            ) {
+            if (task.type?.toLowerCase().includes("harvest") && task.date) {
               const d = new Date(task.date);
-
-              // ignore future years (buggy values from 2026)
-              if (d.getFullYear() < 2020 || d.getFullYear() > 2030) return;
-
-              const key = d.toLocaleString("default", {
-                month: "short",
-                year: "numeric",
-              });
-
-              monthly[key] = (monthly[key] || 0) + (task.kilos || 0);
+              if (!isNaN(d.getTime())) {
+                const key = d.toLocaleString("default", {
+                  month: "short",
+                  year: "numeric",
+                });
+                monthly[key] = (monthly[key] || 0) + (task.kilos || 0);
+              }
             }
-          })
-        );
+          });
+        });
 
-        // Convert to sorted fake months
-        const keys = Object.keys(monthly).sort(
-          (a, b) => new Date(a) - new Date(b)
-        );
-
-        const trendData = keys.map((key, index) => ({
-          month: `M${index + 1}`, // fake sequential month
-          yieldKg: monthly[key],
-          realLabel: key, // keep original for tooltip only
+        const trendData = Object.entries(monthly).map(([month, yieldKg]) => ({
+          month,
+          yieldKg,
         }));
-
         setYieldTrends(trendData);
 
         // -------------------------------------------
@@ -122,7 +105,7 @@ export default function DashboardReports() {
         setWeatherData(weather);
 
         // -------------------------------------------
-        // 5️⃣ Recommendations
+        // 5️⃣ AI Recommendation
         // -------------------------------------------
         const avgRain =
           weather.reduce((a, b) => a + (b.rainfall || 0), 0) /
@@ -138,8 +121,7 @@ export default function DashboardReports() {
           );
         else if (avgYield > 200)
           setRecommendation("✅ Great performance — maintain current crop schedule.");
-        else
-          setRecommendation("📈 Normal conditions — monitor upcoming weather trends.");
+        else setRecommendation("📈 Normal conditions — monitor upcoming weather trends.");
       } catch (err) {
         console.error("❌ Error generating reports:", err);
       }
@@ -174,10 +156,7 @@ export default function DashboardReports() {
       "Weather Data"
     );
 
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
 
     saveAs(
       new Blob([excelBuffer], {
@@ -188,20 +167,14 @@ export default function DashboardReports() {
   };
 
   // -------------------------------------------
-  // Print Only Graphs
+  // Print only the graphs
   // -------------------------------------------
   const handlePrintGraphs = () => {
-    const printContent = printRef.current;
     const win = window.open("", "", "width=1000,height=800");
     win.document.write(`
       <html>
-        <head>
-          <title>SmartCrop Graph Reports</title>
-        </head>
-        <body>
-          <h2>📊 SmartCrop Analytical Graph Reports</h2>
-          ${printContent.innerHTML}
-        </body>
+        <head><title>SmartCrop Graph Reports</title></head>
+        <body>${printRef.current.innerHTML}</body>
       </html>
     `);
     win.document.close();
@@ -211,36 +184,34 @@ export default function DashboardReports() {
 
   const COLORS = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
+  // -------------------------------------------
+  // FIX: Convert yieldTrends into fake months for Weather vs Yield chart
+  // -------------------------------------------
+  const alignedYieldForWeather = yieldTrends.map((item, index) => ({
+    date: weatherData[index]?.date || `2025-${String(index + 1).padStart(2, "0")}-01`,
+    yieldKg: item.yieldKg,
+  }));
+
   return (
     <div className="mt-10 p-6 bg-emerald-50 rounded-2xl shadow-sm">
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-emerald-700">
-          📊 Analytical Reports
-        </h2>
-
+        <h2 className="text-2xl font-bold text-emerald-700">📊 Analytical Reports</h2>
         <div className="flex gap-3">
-          <button
-            onClick={handlePrintGraphs}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
+          <button onClick={handlePrintGraphs} className="bg-blue-600 text-white px-4 py-2 rounded-lg">
             🖨️ Print Graphs
           </button>
-          <button
-            onClick={handleExportExcel}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-          >
+          <button onClick={handleExportExcel} className="bg-emerald-600 text-white px-4 py-2 rounded-lg">
             ⬇️ Export to Excel
           </button>
         </div>
       </div>
 
+      {/* Charts */}
       <div ref={printRef}>
-        {/* 1️⃣ Crop Yield Summary */}
+        {/* 1 — Crop Yield */}
         <div className="chart-section mb-10">
-          <h3 className="font-semibold text-gray-700 mb-2">
-            1.4.1 Crop Yield Summary
-          </h3>
+          <h3 className="font-semibold text-gray-700 mb-2">1.4.1 Crop Yield Summary</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={cropYields}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -253,11 +224,9 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 2️⃣ Common Crops */}
+        {/* 2 — Common Crops */}
         <div className="chart-section mb-10">
-          <h3 className="font-semibold text-gray-700 mb-2">
-            1.4.2 Most Commonly Planted Crops
-          </h3>
+          <h3 className="font-semibold text-gray-700 mb-2">1.4.2 Most Commonly Planted Crops</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
@@ -269,11 +238,8 @@ export default function DashboardReports() {
                 outerRadius={100}
                 label
               >
-                {cropFrequency.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
+                {cropFrequency.map((entry, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -281,38 +247,27 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 3️⃣ Yield Trends */}
+        {/* 3 — Yield Trend */}
         <div className="chart-section mb-10">
-          <h3 className="font-semibold text-gray-700 mb-2">
-            1.4.3 Yield Trend Over Seasons
-          </h3>
+          <h3 className="font-semibold text-gray-700 mb-2">1.4.3 Yield Trend Over Seasons</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={yieldTrends}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip formatter={(value, name, props) => {
-                if (props.payload.realLabel) {
-                  return [`${value} kg`, `Month: ${props.payload.realLabel}`];
-                }
-                return value;
-              }} />
-              <Line
-                type="monotone"
-                dataKey="yieldKg"
-                stroke="#059669"
-                strokeWidth={2}
-              />
+              <Tooltip />
+              <Line type="monotone" dataKey="yieldKg" stroke="#059669" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* 4️⃣ Weather vs Yield */}
+        {/* 4 — Weather vs Yield */}
         {weatherData.length > 0 && (
           <div className="chart-section mb-10">
             <h3 className="font-semibold text-gray-700 mb-2">
               1.4.6 Weather (Rainfall) vs Yield Relationship
             </h3>
+
             <ResponsiveContainer width="100%" height={300}>
               <LineChart>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -322,7 +277,7 @@ export default function DashboardReports() {
                 <Tooltip />
                 <Legend />
 
-                {/* Rainfall */}
+                {/* Rainfall Line */}
                 <Line
                   yAxisId="left"
                   type="monotone"
@@ -332,11 +287,11 @@ export default function DashboardReports() {
                   strokeWidth={2}
                 />
 
-                {/* Yield KG */}
+                {/* Yield Kilos — FIXED WITH FAKE MONTHS */}
                 <Line
                   yAxisId="right"
                   type="monotone"
-                  data={yieldTrends}
+                  data={alignedYieldForWeather}
                   dataKey="yieldKg"
                   stroke="#10b981"
                   strokeWidth={2}
@@ -349,9 +304,7 @@ export default function DashboardReports() {
 
       {/* Recommendation */}
       <div className="p-4 bg-white rounded-xl shadow-sm">
-        <h3 className="font-semibold text-gray-700 mb-2">
-          1.4.7 Recommendations for Optimal Planting
-        </h3>
+        <h3 className="font-semibold text-gray-700 mb-2">1.4.7 Recommendations for Optimal Planting</h3>
         <p className="text-gray-600">{recommendation}</p>
       </div>
     </div>
