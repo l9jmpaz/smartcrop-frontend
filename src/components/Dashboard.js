@@ -19,18 +19,59 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ⭐ Performance Metrics
+  // Metrics
   const [activeFarmers, setActiveFarmers] = useState(0);
   const [serverSpeed, setServerSpeed] = useState(0);
 
-  // ---------------------------------------------------
-  // 🔄 MANUAL FULL REFRESH (heavy)
-  // ---------------------------------------------------
+  // =======================
+  // 🟢 Oversupply Modal State
+  // =======================
+  const [oversupplyOpen, setOversupplyOpen] = useState(false);
+  const [allCrops, setAllCrops] = useState([]);
+  const [checkedCrops, setCheckedCrops] = useState([]);
+
+  // Fetch crops for modal
+  const loadCropsForOversupply = async () => {
+    try {
+      const res = await axios.get(`${baseUrl}/api/crops`);
+      setAllCrops(res.data || []);
+
+      const already = res.data.filter((c) => c.oversupply).map((c) => c.name);
+      setCheckedCrops(already);
+    } catch (err) {
+      console.error("❌ Fetch crops failed", err);
+    }
+  };
+
+  const toggleCrop = (cropName) => {
+    setCheckedCrops((prev) =>
+      prev.includes(cropName)
+        ? prev.filter((c) => c !== cropName)
+        : [...prev, cropName]
+    );
+  };
+
+  const saveOversupply = async () => {
+    try {
+      await axios.put(`${baseUrl}/api/crops/oversupply`, {
+        crops: checkedCrops,
+      });
+
+      alert("✔ Oversupply list updated!");
+      setOversupplyOpen(false);
+    } catch (err) {
+      console.error("❌ Save failed", err);
+      alert("Failed to update oversupply.");
+    }
+  };
+
+  // =======================
+  // Dashboard Data
+  // =======================
   const fetchDashboardData = async () => {
     setLoading(true);
 
     try {
-      // Measure API response speed
       const start = performance.now();
 
       const healthRes = await axios
@@ -46,9 +87,10 @@ export default function Dashboard() {
           : "⚠️ Some systems offline"
       );
 
-      // Get Active Users
-const metricsRes = await axios.get(`${baseUrl}/metrics`);
-setActiveFarmers(metricsRes.data.activeFarmers || 0);
+      // Active Farmers
+      const metricsRes = await axios.get(`${baseUrl}/metrics`);
+      setActiveFarmers(metricsRes.data.activeFarmers || 0);
+
       // Alerts
       const alertRes = await axios
         .get(`${baseUrl}/api/alerts`)
@@ -60,7 +102,7 @@ setActiveFarmers(metricsRes.data.activeFarmers || 0);
         allAlerts.filter((a) => a.severity === "Critical").length
       );
 
-      // Crop / Farm Data
+      // Crop Count
       const farmRes = await axios.get(`${baseUrl}/api/farm`);
       const farms = farmRes.data.farms || [];
       let totalHarvests = 0;
@@ -76,7 +118,7 @@ setActiveFarmers(metricsRes.data.activeFarmers || 0);
 
       setCropCount(totalHarvests);
 
-      // Weather
+      // Weather Sync
       const weatherRes = await axios
         .get(`${baseUrl}/api/weather`)
         .catch(() => ({ data: {} }));
@@ -92,25 +134,21 @@ setActiveFarmers(metricsRes.data.activeFarmers || 0);
     }
   };
 
-  // ---------------------------------------------------
-  // 🔁 AUTO REFRESH — only metrics (lightweight)
-  // ---------------------------------------------------
   const fetchActiveFarmersOnly = async () => {
     try {
       const res = await axios.get(`${baseUrl}/metrics`);
       setActiveFarmers(res.data.activeFarmers || 0);
-    } catch (err) {
+    } catch {
       console.error("❌ Active user refresh failed");
     }
   };
 
   useEffect(() => {
-    fetchDashboardData(); // initial load
-
-   const polling = setTimeout(function refresh() {
-  fetchActiveFarmersOnly();
-  return setTimeout(refresh, 10000);
-}, 10000);
+    fetchDashboardData();
+    setTimeout(function loop() {
+      fetchActiveFarmersOnly();
+      return setTimeout(loop, 10000);
+    }, 10000);
   }, []);
 
   if (loading) {
@@ -121,28 +159,43 @@ setActiveFarmers(metricsRes.data.activeFarmers || 0);
     );
   }
 
-  // -----------------------------------------------------
-  // UI SECTION
-  // -----------------------------------------------------
+  // =======================
+  // UI STARTS
+  // =======================
   return (
     <div className="p-8 bg-gray-50 min-h-screen font-inter">
-      {/* TITLE + REFRESH BUTTON */}
+      {/* HEADER SECTION */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-semibold text-gray-800">
           System Overview
         </h1>
 
-        <button
-          onClick={fetchDashboardData}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-        >
-          Refresh Dashboard
-        </button>
+        <div className="flex gap-3">
+          {/* 🔵 Edit Oversupply Button */}
+          <button
+            onClick={() => {
+              loadCropsForOversupply();
+              setOversupplyOpen(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Edit Oversupply
+          </button>
+
+          {/* REFRESH */}
+          <button
+            onClick={fetchDashboardData}
+            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+          >
+            Refresh Dashboard
+          </button>
+        </div>
       </div>
 
-      {/* TOP OVERVIEW CARDS */}
+      {/* CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        {/* SYSTEM HEALTH */}
+        
+        {/* CARD 1 */}
         <div className="bg-gray-100 rounded-xl p-5">
           <Gauge className="text-emerald-600 mb-2" size={28} />
           <p className="text-sm text-gray-500 italic">Performance</p>
@@ -150,52 +203,43 @@ setActiveFarmers(metricsRes.data.activeFarmers || 0);
             System Health
           </h2>
           <p className="text-sm text-gray-700 mt-1">{systemHealth}</p>
-
           <p className="text-sm text-gray-800 font-medium mt-2">
             Server Speed: {serverSpeed} ms
           </p>
-
           <p className="text-sm text-gray-800 font-medium">
             Active Farmers: {activeFarmers}
           </p>
         </div>
 
-        {/* ALERTS */}
+        {/* CARD 2 */}
         <div className="bg-gray-100 rounded-xl p-5">
           <AlertTriangle className="text-yellow-600 mb-2" size={28} />
           <p className="text-sm text-gray-500 italic">Critical Alerts</p>
           <h2 className="text-lg font-semibold text-gray-800 mt-1">
             {alertCount} Active Alerts
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {alertCount > 0
-              ? "System issues detected"
-              : "No critical alerts"}
-          </p>
         </div>
 
-        {/* WEATHER */}
+        {/* CARD 3 */}
         <div className="bg-gray-100 rounded-xl p-5">
           <Cloud className="text-blue-500 mb-2" size={28} />
           <p className="text-sm text-gray-500 italic">Weather Data</p>
           <h2 className="text-lg font-semibold text-gray-800 mt-1">
-            Last Sync:{" "}
-            <span className="font-medium">{weatherSync}</span>
+            Last Sync: <span className="font-medium">{weatherSync}</span>
           </h2>
         </div>
 
-        {/* CROP DATA */}
+        {/* CARD 4 */}
         <div className="bg-gray-100 rounded-xl p-5">
           <FileSpreadsheet className="text-green-600 mb-2" size={28} />
           <p className="text-sm text-gray-500 italic">Crop Data</p>
           <h2 className="text-lg font-semibold text-gray-800 mt-1">
             Records: {cropCount.toLocaleString()}
           </h2>
-          <p className="text-sm text-gray-600 mt-1">Validated 88%</p>
         </div>
       </div>
 
-      {/* RECENT ALERTS */}
+      {/* ALERT TABLE */}
       <div className="bg-gray-100 rounded-xl p-5">
         <h2 className="text-lg font-semibold text-gray-800 mb-3">
           Recent Alerts
@@ -235,6 +279,55 @@ setActiveFarmers(metricsRes.data.activeFarmers || 0);
 
         <DashboardReports />
       </div>
+
+      {/* =======================
+      MODAL: Oversupply Editor
+      ======================= */}
+      {oversupplyOpen && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+          <div className="bg-white w-[480px] max-h-[500px] p-6 rounded-xl shadow-lg overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-3">
+              Edit Oversupply Crops
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-3">
+              Check crops that are currently oversupply.
+            </p>
+
+            <div className="space-y-2">
+              {allCrops.map((crop) => (
+                <label
+                  key={crop._id}
+                  className="flex items-center gap-3 border p-2 rounded-lg cursor-pointer hover:bg-gray-100"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checkedCrops.includes(crop.name)}
+                    onChange={() => toggleCrop(crop.name)}
+                  />
+                  <span className="font-medium">{crop.name}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => setOversupplyOpen(false)}
+                className="px-4 py-2 bg-gray-300 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveOversupply}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
