@@ -176,7 +176,7 @@ export default function ArchivedData() {
             activeTab === "december" ? "bg-green-600 text-white" : "bg-white shadow"
           }`}
         >
-          December Records
+          Records
         </button>
       </div>
 
@@ -185,3 +185,4 @@ export default function ArchivedData() {
     </div>
   );
 }
+
