@@ -56,7 +56,7 @@ export default function DashboardReports() {
         setCropYields(yieldData);
 
         // -------------------------------------------
-        // 2️⃣ Most Commonly Planted Crops
+        // 2️⃣ Common Crops
         // -------------------------------------------
         const cropCount = {};
         farms.forEach((farm) => {
@@ -75,33 +75,49 @@ export default function DashboardReports() {
         setCropFrequency(freqData);
 
         // -------------------------------------------
-        // 3️⃣ Yield Trends (Grouped by Month)
-        // Removes "undefined" bugs
+        // 3️⃣ Yield Trends (Cleaned)
+        // Removes “undefined” and invalid dates
+        // Converts to fake sequential months: M1, M2, M3...
         // -------------------------------------------
         const monthly = {};
-        farms.forEach((farm) => {
-          (farm.tasks || []).forEach((task) => {
-            if (task.type?.toLowerCase().includes("harvest") && task.date) {
-              const d = new Date(task.date);
-              if (!isNaN(d.getTime())) {
-                const key = d.toLocaleString("default", {
-                  month: "short",
-                  year: "numeric",
-                });
-                monthly[key] = (monthly[key] || 0) + (task.kilos || 0);
-              }
-            }
-          });
-        });
 
-        const trendData = Object.entries(monthly).map(([month, yieldKg]) => ({
-          month,
-          yieldKg,
+        farms.forEach((farm) =>
+          (farm.tasks || []).forEach((task) => {
+            if (
+              task.type?.toLowerCase().includes("harvest") &&
+              task.date &&
+              !isNaN(new Date(task.date).getTime())
+            ) {
+              const d = new Date(task.date);
+
+              // ignore future years (buggy values from 2026)
+              if (d.getFullYear() < 2020 || d.getFullYear() > 2030) return;
+
+              const key = d.toLocaleString("default", {
+                month: "short",
+                year: "numeric",
+              });
+
+              monthly[key] = (monthly[key] || 0) + (task.kilos || 0);
+            }
+          })
+        );
+
+        // Convert to sorted fake months
+        const keys = Object.keys(monthly).sort(
+          (a, b) => new Date(a) - new Date(b)
+        );
+
+        const trendData = keys.map((key, index) => ({
+          month: `M${index + 1}`, // fake sequential month
+          yieldKg: monthly[key],
+          realLabel: key, // keep original for tooltip only
         }));
+
         setYieldTrends(trendData);
 
         // -------------------------------------------
-        // 4️⃣ Weather Data (Rainfall correlation)
+        // 4️⃣ Weather Data
         // -------------------------------------------
         setWeatherData(weather);
 
@@ -121,13 +137,9 @@ export default function DashboardReports() {
             "⚠️ High rainfall with low yield — consider better drainage or shorter-duration crops."
           );
         else if (avgYield > 200)
-          setRecommendation(
-            "✅ Great performance — maintain current crop schedule."
-          );
+          setRecommendation("✅ Great performance — maintain current crop schedule.");
         else
-          setRecommendation(
-            "📈 Normal conditions — monitor upcoming weather trends."
-          );
+          setRecommendation("📈 Normal conditions — monitor upcoming weather trends.");
       } catch (err) {
         console.error("❌ Error generating reports:", err);
       }
@@ -137,7 +149,7 @@ export default function DashboardReports() {
   }, []);
 
   // -------------------------------------------
-  // ⬇️ Export all to Excel
+  // Export to Excel
   // -------------------------------------------
   const handleExportExcel = () => {
     const workbook = XLSX.utils.book_new();
@@ -176,7 +188,7 @@ export default function DashboardReports() {
   };
 
   // -------------------------------------------
-  // 🖨️ Print Graphs Only
+  // Print Only Graphs
   // -------------------------------------------
   const handlePrintGraphs = () => {
     const printContent = printRef.current;
@@ -185,10 +197,6 @@ export default function DashboardReports() {
       <html>
         <head>
           <title>SmartCrop Graph Reports</title>
-          <style>
-            body { font-family: Arial; padding: 20px; }
-            h3 { color: #059669; }
-          </style>
         </head>
         <body>
           <h2>📊 SmartCrop Analytical Graph Reports</h2>
@@ -205,10 +213,10 @@ export default function DashboardReports() {
 
   return (
     <div className="mt-10 p-6 bg-emerald-50 rounded-2xl shadow-sm">
-      {/* ---------- HEADER ---------- */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-emerald-700">
-          📊 Descriptive & Analytical Reports
+          📊 Analytical Reports
         </h2>
 
         <div className="flex gap-3">
@@ -227,7 +235,6 @@ export default function DashboardReports() {
         </div>
       </div>
 
-      {/* ---------- CHARTS ---------- */}
       <div ref={printRef}>
         {/* 1️⃣ Crop Yield Summary */}
         <div className="chart-section mb-10">
@@ -274,7 +281,7 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 3️⃣ Yield Trend */}
+        {/* 3️⃣ Yield Trends */}
         <div className="chart-section mb-10">
           <h3 className="font-semibold text-gray-700 mb-2">
             1.4.3 Yield Trend Over Seasons
@@ -284,7 +291,12 @@ export default function DashboardReports() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip />
+              <Tooltip formatter={(value, name, props) => {
+                if (props.payload.realLabel) {
+                  return [`${value} kg`, `Month: ${props.payload.realLabel}`];
+                }
+                return value;
+              }} />
               <Line
                 type="monotone"
                 dataKey="yieldKg"
@@ -320,7 +332,7 @@ export default function DashboardReports() {
                   strokeWidth={2}
                 />
 
-                {/* Yield KG – FIXED */}
+                {/* Yield KG */}
                 <Line
                   yAxisId="right"
                   type="monotone"
@@ -335,7 +347,7 @@ export default function DashboardReports() {
         )}
       </div>
 
-      {/* ---------- RECOMMENDATION ---------- */}
+      {/* Recommendation */}
       <div className="p-4 bg-white rounded-xl shadow-sm">
         <h3 className="font-semibold text-gray-700 mb-2">
           1.4.7 Recommendations for Optimal Planting
