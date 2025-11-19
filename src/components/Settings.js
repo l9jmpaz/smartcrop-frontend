@@ -47,7 +47,7 @@ export default function Settings() {
       setProfileData({
         username: u.username || "",
         email: u.email || "",
-        pphone: u.phone && u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
+        phone: u.phone && u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
         barangay: u.barangay || "",
       });
 
