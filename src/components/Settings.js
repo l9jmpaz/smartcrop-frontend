@@ -3,18 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
-const token = localStorage.getItem("token");
 const userId = localStorage.getItem("userId");
-
-const barangays = [
-  "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan",
-  "Balele","Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog","Boot",
-  "Cale","Darasa","Gonzales","Hidalgo","Janopol","Janopol Oriental","Laurel","Luyos",
-  "Mabini","Malaking Pulo","Maria Paz","Maugat","Montaña (Ik-ik)","Natatas","Pagaspas",
-  "Pantay Bata","Pantay Matanda","Poblacion 1","Poblacion 2","Poblacion 3","Poblacion 4",
-  "Poblacion 5","Poblacion 6","Poblacion 7","Sala","Sambat","San Jose","Santol","Santor",
-  "Sulpoc","Suplang","Talaga","Tinurik","Trapiche","Ulango","Wawa"
-].sort();
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
@@ -35,98 +24,65 @@ export default function Settings() {
   // LOAD USER
   // ========================================================
   const loadUser = async () => {
-  try {
-    console.log(
-      "Loading user from:",
-      `${baseUrl}/users/${userId}`,
-      "token:",
-      !!token
-    );
+    try {
+      const res = await axios.get(`${baseUrl}/users/${userId}`);
+      const u = res.data.data;
 
-    const res = await axios.get(`${baseUrl}/users/${userId}`);
-
-    const u = res.data.data;
-
-    setProfileData({
-      username: u.username,
-      email: u.email,
-      phone: u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
-      barangay: u.barangay
-    });
-
-  } catch (err) {
-    console.error("Load user failed:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setProfileData({
+        username: u.username,
+        email: u.email,
+        phone: u.phone.startsWith("+63") ? u.phone.slice(3) : u.phone,
+        barangay: u.barangay,
+      });
+    } catch (err) {
+      console.error("Load user failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadUser();
   }, []);
 
   // ========================================================
-  // SAVE PROFILE
+  // SAVE USERNAME ONLY
   // ========================================================
-  // Save profile
-const saveProfile = async () => {
-  if (!profileData.username || !profileData.email || !profileData.phone || !profileData.barangay) {
-    alert("All fields are required.");
-    return;
-  }
+  const saveProfile = async () => {
+    if (!profileData.username) {
+      alert("Username cannot be empty.");
+      return;
+    }
 
-  if (profileData.phone.length !== 10) {
-    alert("Phone must be exactly 10 digits.");
-    return;
-  }
+    try {
+      const res = await axios.put(`${baseUrl}/users/${userId}`, {
+        username: profileData.username,
+      });
 
-  // DEBUG: show payload
-  const payload = {
-    username: profileData.username,
-    email: profileData.email,
-    phone: `+63${profileData.phone}`,
-    barangay: profileData.barangay,
+      alert("Username updated!");
+      loadUser();
+    } catch (err) {
+      console.error("Update failed:", err);
+      alert("Failed to update profile.");
+    }
   };
-  console.log("Saving profile -> PUT", `${baseUrl}/users/${userId}, "payload:"`, payload);
-
-  try {
-    const res = await axios.put(`${baseUrl}/users/${userId}, payload`, {
-      // include token only if your backend requires it:
-    
-    });
-
-    console.log("Update response:", res && res.data);
-    alert("Profile updated!");
-    loadUser();
-  } catch (err) {
-    // show detailed error in console
-    console.error("Update failed (axios error):", err);
-    console.error("Response data / status:", err.response?.status, err.response?.data);
-    alert("Failed to update profile. See console for details.");
-  }
-};
-
 
   // ========================================================
   // CHANGE PASSWORD
   // ========================================================
   const savePassword = async () => {
     if (!passwords.oldPassword || !passwords.newPassword) {
-      alert("Both password fields are required.");
+      alert("Both fields are required.");
       return;
     }
 
     try {
-      await axios.put(
-        `${baseUrl}/users/${userId}/password`,
-        passwords
-      );
+      await axios.put(`${baseUrl}/users/${userId}/password`, passwords);
 
       alert("Password updated!");
       setPasswords({ oldPassword: "", newPassword: "" });
     } catch (err) {
-      console.error("Password error:", err);
+      console.error("Password update failed:", err);
       alert("Incorrect old password.");
     }
   };
@@ -138,76 +94,77 @@ const saveProfile = async () => {
   // ========================================================
   return (
     <section className="p-6 max-w-lg mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-emerald-700">Admin Settings</h2>
 
-      {/* PROFILE */}
-      <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow space-y-4">
-        <h3 className="text-lg font-semibold">Edit Profile</h3>
+      <h2 className="text-2xl font-bold text-emerald-700 text-center">
+        Admin Settings
+      </h2>
 
-        {/* USERNAME */}
-        <input
-          className="w-full border rounded-lg px-3 py-2"
-          value={profileData.username}
-          onChange={(e) =>
-            setProfileData({ ...profileData, username: e.target.value })
-          }
-          placeholder="Full Name"
-        />
+      {/* =================== PROFILE CARD =================== */}
+      <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-6 space-y-5">
 
-        {/* EMAIL */}
-        <input
-          type="email"
-          className="w-full border rounded-lg px-3 py-2"
-          value={profileData.email}
-          onChange={(e) =>
-            setProfileData({ ...profileData, email: e.target.value })
-          }
-          placeholder="Email"
-        />
+        <h3 className="text-xl font-semibold text-gray-700">
+          Profile Information
+        </h3>
 
-        {/* PHONE */}
-        <div className="flex items-center border rounded-lg px-3 py-2 gap-2">
-          <span className="text-gray-600 font-medium">+63</span>
+        {/* USERNAME (editable) */}
+        <div>
+          <label className="text-sm font-medium text-gray-600">Username</label>
           <input
-            type="text"
-            inputMode="numeric"
-            className="w-full outline-none"
-            value={profileData.phone}
+            className="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-emerald-500"
+            value={profileData.username}
             onChange={(e) =>
-              setProfileData({
-                ...profileData,
-                phone: e.target.value.replace(/\D/g, "").slice(0, 10),
-              })
+              setProfileData({ ...profileData, username: e.target.value })
             }
-            placeholder="9123456789"
           />
         </div>
 
-        {/* BARANGAY */}
-        <select
-          className="w-full border rounded-lg px-3 py-2"
-          value={profileData.barangay}
-          onChange={(e) =>
-            setProfileData({ ...profileData, barangay: e.target.value })
-          }
-        >
-          <option value="">Select Barangay</option>
-          {barangays.map((b) => (
-            <option key={b} value={b}>{b}</option>
-          ))}
-        </select>
+        {/* EMAIL (read-only) */}
+        <div>
+          <label className="text-sm font-medium text-gray-600">Email</label>
+          <input
+            className="w-full border rounded-lg px-3 py-2 mt-1 bg-gray-100 text-gray-500 cursor-not-allowed"
+            value={profileData.email}
+            readOnly
+          />
+        </div>
+
+        {/* PHONE (read-only) */}
+        <div>
+          <label className="text-sm font-medium text-gray-600">Phone</label>
+          <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed">
+            <span>+63</span>
+            <input
+              className="w-full bg-gray-100 ml-2"
+              value={profileData.phone}
+              readOnly
+            />
+          </div>
+        </div>
+
+        {/* BARANGAY (read-only) */}
+        <div>
+          <label className="text-sm font-medium text-gray-600">Barangay</label>
+          <input
+            className="w-full border rounded-lg px-3 py-2 mt-1 bg-gray-100 text-gray-500 cursor-not-allowed"
+            value={profileData.barangay}
+            readOnly
+          />
+        </div>
 
         <button
           onClick={saveProfile}
-          className="w-full bg-emerald-600 text-white py-2 rounded-lg"
+          className="w-full bg-emerald-600 text-white py-2 mt-2 rounded-lg hover:bg-emerald-700 transition"
         >
-          Save Profile
+          Save Username
         </button>
       </div>
 
-      {/* PASSWORD */}
-      <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow space-y-4">
-        <h3 className="text-lg font-semibold">Change Password</h3>
+      {/* =================== PASSWORD CARD =================== */}
+      <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-6 space-y-5">
+
+        <h3 className="text-xl font-semibold text-gray-700">
+          Change Password
+        </h3>
 
         <input
           type="password"
@@ -231,11 +188,12 @@ const saveProfile = async () => {
 
         <button
           onClick={savePassword}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
         >
           Update Password
         </button>
       </div>
+
     </section>
   );
 }
