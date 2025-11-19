@@ -42,7 +42,9 @@ export default function Settings() {
       setProfileData({
         username: u.username || "",
         email: u.email || "",
-        phone: u.phone?.replace("+63", "") || "",
+        phone: u.phone?.startsWith("+63")
+  ? u.phone.substring(3).slice(0, 10)
+  : u.phone.slice(0, 10),
         barangay: u.barangay || "",
       });
     } catch (err) {
