@@ -34,13 +34,10 @@ export default function DashboardReports() {
       try {
         const farmRes = await axios.get(`${baseUrl}/farm`);
         const weatherRes = await axios.get(`${baseUrl}/weather`);
-
         const farms = farmRes.data.farms || [];
         const weather = weatherRes.data.data || [];
 
-        /* ------------------------------------------------------------
-            1) Crop Yield Summary
-        ------------------------------------------------------------ */
+        // 1️⃣ Crop Yield Summary
         const cropMap = {};
         farms.forEach((farm) => {
           (farm.tasks || []).forEach((task) => {
@@ -49,16 +46,13 @@ export default function DashboardReports() {
             }
           });
         });
-
         const yieldData = Object.entries(cropMap).map(([crop, kilos]) => ({
           crop,
           kilos,
         }));
         setCropYields(yieldData);
 
-        /* ------------------------------------------------------------
-            2) Most Commonly Planted Crops
-        ------------------------------------------------------------ */
+        // 2️⃣ Common Crops
         const cropCount = {};
         farms.forEach((farm) => {
           (farm.tasks || []).forEach((task) => {
@@ -68,62 +62,38 @@ export default function DashboardReports() {
             }
           });
         });
+        const freqData = Object.entries(cropCount).map(([name, value]) => ({
+          name,
+          value,
+        }));
+        setCropFrequency(freqData);
 
-        setCropFrequency(
-          Object.entries(cropCount).map(([name, value]) => ({
-            name,
-            value,
-          }))
-        );
-
-        /* ------------------------------------------------------------
-            3) Yield Trend by Month
-        ------------------------------------------------------------ */
+        // 3️⃣ Yield Trends
         const monthly = {};
-        farms.forEach((farm) => {
+        farms.forEach((farm) =>
           (farm.tasks || []).forEach((task) => {
             if (task.type?.toLowerCase().includes("harvest")) {
-              const date = new Date(task.date);
-              const key = date.toLocaleString("default", {
+              const m = new Date(task.date).toLocaleString("default", {
                 month: "short",
                 year: "numeric",
               });
-
-              monthly[key] = (monthly[key] || 0) + (task.kilos || 0);
+              monthly[m] = (monthly[m] || 0) + (task.kilos || 0);
             }
-          });
-        });
-
-        const yieldTrendList = Object.entries(monthly).map(([month, yieldKg]) => ({
+          })
+        );
+        const trendData = Object.entries(monthly).map(([month, yieldKg]) => ({
           month,
           yieldKg,
         }));
+        setYieldTrends(trendData);
 
-        setYieldTrends(yieldTrendList);
+        // 4️⃣ Weather
+        setWeatherData(weather);
 
-        /* ------------------------------------------------------------
-            4) Add Clean Dates to Weather Data  (FIXES undefined)
-        ------------------------------------------------------------ */
-        const weatherFixed = weather.map((w) => {
-          const d = new Date(w.date || Date.now());
-          return {
-            ...w,
-            date: d.toLocaleString("default", {
-              month: "short",
-              year: "numeric",
-            }),
-          };
-        });
-
-        setWeatherData(weatherFixed);
-
-        /* ------------------------------------------------------------
-            5) Recommendation
-        ------------------------------------------------------------ */
+        // 5️⃣ Recommendation
         const avgRain =
-          weatherFixed.reduce((a, b) => a + (b.rainfall || 0), 0) /
-          (weatherFixed.length || 1);
-
+          weather.reduce((a, b) => a + (b.rainfall || 0), 0) /
+          (weather.length || 1);
         const avgYield =
           yieldData.reduce((a, b) => a + b.kilos, 0) /
           (yieldData.length || 1);
@@ -133,9 +103,9 @@ export default function DashboardReports() {
             "⚠️ High rainfall with low yield — consider better drainage or shorter-duration crops."
           );
         else if (avgYield > 200)
-          setRecommendation("✅ Great performance — maintain your current crop schedule.");
+          setRecommendation("✅ Great performance — maintain current crop schedule.");
         else
-          setRecommendation("📈 Normal conditions — monitor upcoming weather.");
+          setRecommendation("📈 Normal conditions — monitor upcoming weather trends.");
       } catch (err) {
         console.error("❌ Error generating reports:", err);
       }
@@ -144,70 +114,61 @@ export default function DashboardReports() {
     fetchData();
   }, []);
 
-  /* ------------------------------------------------------------
-      Excel Export
-  ------------------------------------------------------------ */
+  // ⬇️ Export to Excel
   const handleExportExcel = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropYields), "Crop Yields");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropFrequency), "Common Crops");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(yieldTrends), "Yield Trends");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(weatherData), "Weather Data");
-
-    const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
-    saveAs(
-      new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      }),
-      `SmartCrop_Reports_${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, `SmartCrop_Reports_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  /* ------------------------------------------------------------
-      Print Graphs Only
-  ------------------------------------------------------------ */
   const handlePrintGraphs = () => {
+    const printContent = printRef.current;
     const win = window.open("", "", "width=1000,height=800");
     win.document.write(`
-      <html><head><title>SmartCrop Graph Reports</title>
-        <style> body { font-family: Arial; padding: 20px; } </style>
-      </head><body>${printRef.current.innerHTML}</body></html>
+      <html>
+        <head>
+          <title>SmartCrop Graph Reports</title>
+        </head>
+        <body>
+          ${printContent.innerHTML}
+        </body>
+      </html>
     `);
     win.document.close();
+    win.focus();
     win.print();
+    win.close();
   };
 
   const COLORS = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
-  /* ------------------------------------------------------------
-      UI Rendering
-  ------------------------------------------------------------ */
   return (
     <div className="mt-10 p-6 bg-emerald-50 rounded-2xl shadow-sm">
+
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-emerald-700">
-          📊 Analytical Reports
-        </h2>
+        <h2 className="text-2xl font-bold text-emerald-700">📊 Analytical Reports</h2>
         <div className="flex gap-3">
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-            onClick={handlePrintGraphs}
-          >
+          <button onClick={handlePrintGraphs} className="bg-blue-600 text-white px-4 py-2 rounded-lg">
             🖨️ Print Graphs
           </button>
-          <button
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg"
-            onClick={handleExportExcel}
-          >
+          <button onClick={handleExportExcel} className="bg-emerald-600 text-white px-4 py-2 rounded-lg">
             ⬇️ Export to Excel
           </button>
         </div>
       </div>
 
       <div ref={printRef}>
-        {/* 1 — Crop Yield Summary */}
+        
+        {/* 1️⃣ Crop Yield Summary */}
         <div className="chart-section mb-10">
-          <h3 className="font-semibold text-gray-700 mb-2">1.4.1 Crop Yield Summary</h3>
+          <h3 className="font-semibold">1.4.1 Crop Yield Summary</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={cropYields}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -220,22 +181,14 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 2 — Common Crops */}
+        {/* 2️⃣ Common Crops */}
         <div className="chart-section mb-10">
-          <h3 className="font-semibold text-gray-700 mb-2">1.4.2 Most Commonly Planted Crops</h3>
+          <h3 className="font-semibold">1.4.2 Most Commonly Planted Crops</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
-              <Pie
-                data={cropFrequency}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label
-              >
-                {cropFrequency.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              <Pie data={cropFrequency} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                {cropFrequency.map((entry, index) => (
+                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -243,111 +196,44 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 3 — Yield Trend */}
+        {/* 3️⃣ Yield Trend */}
         <div className="chart-section mb-10">
-          <h3 className="font-semibold text-gray-700 mb-2">1.4.3 Yield Trend Over Seasons</h3>
-         {/* 🔧 FIXED WEATHER vs YIELD MERGED GRAPH */}
-{
-  weatherData.length > 0 && yieldTrends.length > 0 && (
-    (() => {
-      // Convert weather to monthly averages
-      const weatherMonthly = {};
-      weatherData.forEach((w) => {
-        const m = new Date(w.date).toLocaleString("default", {
-          month: "short",
-          year: "numeric",
-        });
-        if (!weatherMonthly[m]) weatherMonthly[m] = { total: 0, count: 0 };
-        weatherMonthly[m].total += w.rainfall || 0;
-        weatherMonthly[m].count += 1;
-      });
-
-      // Build final merged dataset
-      const merged = yieldTrends.map((yt) => ({
-        date: yt.month,
-        yieldKg: yt.yieldKg,
-        rainfall: weatherMonthly[yt.month]
-          ? weatherMonthly[yt.month].total / weatherMonthly[yt.month].count
-          : 0,
-      }));
-
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={merged}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis yAxisId="left" />
-            <YAxis yAxisId="right" orientation="right" />
-            <Tooltip />
-            <Legend />
-
-            {/* Rainfall */}
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="rainfall"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={true}
-            />
-
-            {/* Yield */}
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="yieldKg"
-              stroke="#10b981"
-              strokeWidth={2}
-              dot={true}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      );
-    })()
-  )
-}
+          <h3 className="font-semibold">1.4.3 Yield Trend Over Seasons</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={yieldTrends}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="yieldKg" stroke="#059669" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* 4 — Weather vs Yield (FIXED) */}
+        {/* 4️⃣ Weather vs Yield (FIXED — removed undefined extra line) */}
         {weatherData.length > 0 && (
           <div className="chart-section mb-10">
-            <h3 className="font-semibold text-gray-700 mb-2">
-              1.4.6 Weather (Rainfall) vs Yield Relationship
-            </h3>
+            <h3 className="font-semibold">1.4.6 Weather (Rainfall) vs Yield Relationship</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart>
+              <LineChart data={weatherData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
+                <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line
-                  yAxisId="left"
-                  data={weatherData}
-                  dataKey="rainfall"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                />
-                <Line
-                  yAxisId="right"
-                  data={yieldTrends}
-                  dataKey="yieldKg"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                />
+                {/* Only rainfall line to avoid undefined */}
+                <Line type="monotone" dataKey="rainfall" stroke="#3b82f6" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
+
       </div>
 
-      {/* Recommendation */}
+      {/* 📈 Recommendation */}
       <div className="p-4 bg-white rounded-xl shadow-sm">
-        <h3 className="font-semibold text-gray-700 mb-2">
-          1.4.7 Recommendations for Optimal Planting
-        </h3>
-        <p className="text-gray-600">{recommendation}</p>
+        <h3 className="font-semibold mb-2">1.4.7 Recommendations for Optimal Planting</h3>
+        <p>{recommendation}</p>
       </div>
     </div>
   );
