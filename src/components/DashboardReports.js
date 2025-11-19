@@ -246,15 +246,66 @@ export default function DashboardReports() {
         {/* 3 — Yield Trend */}
         <div className="chart-section mb-10">
           <h3 className="font-semibold text-gray-700 mb-2">1.4.3 Yield Trend Over Seasons</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={yieldTrends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="yieldKg" stroke="#059669" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+         {/* 🔧 FIXED WEATHER vs YIELD MERGED GRAPH */}
+{
+  weatherData.length > 0 && yieldTrends.length > 0 && (
+    (() => {
+      // Convert weather to monthly averages
+      const weatherMonthly = {};
+      weatherData.forEach((w) => {
+        const m = new Date(w.date).toLocaleString("default", {
+          month: "short",
+          year: "numeric",
+        });
+        if (!weatherMonthly[m]) weatherMonthly[m] = { total: 0, count: 0 };
+        weatherMonthly[m].total += w.rainfall || 0;
+        weatherMonthly[m].count += 1;
+      });
+
+      // Build final merged dataset
+      const merged = yieldTrends.map((yt) => ({
+        date: yt.month,
+        yieldKg: yt.yieldKg,
+        rainfall: weatherMonthly[yt.month]
+          ? weatherMonthly[yt.month].total / weatherMonthly[yt.month].count
+          : 0,
+      }));
+
+      return (
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={merged}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis yAxisId="left" />
+            <YAxis yAxisId="right" orientation="right" />
+            <Tooltip />
+            <Legend />
+
+            {/* Rainfall */}
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="rainfall"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={true}
+            />
+
+            {/* Yield */}
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="yieldKg"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={true}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    })()
+  )
+}
         </div>
 
         {/* 4 — Weather vs Yield (FIXED) */}
