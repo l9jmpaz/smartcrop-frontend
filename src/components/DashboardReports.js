@@ -37,9 +37,7 @@ export default function DashboardReports() {
         const farms = farmRes.data.farms || [];
         const weather = weatherRes.data.data || [];
 
-        // -------------------------------------------
         // 1️⃣ Crop Yield Summary
-        // -------------------------------------------
         const cropMap = {};
         farms.forEach((farm) => {
           (farm.tasks || []).forEach((task) => {
@@ -55,9 +53,7 @@ export default function DashboardReports() {
         }));
         setCropYields(yieldData);
 
-        // -------------------------------------------
-        // 2️⃣ Commonly Planted Crops
-        // -------------------------------------------
+        // 2️⃣ Crop Frequency
         const cropCount = {};
         farms.forEach((farm) => {
           (farm.tasks || []).forEach((task) => {
@@ -67,16 +63,13 @@ export default function DashboardReports() {
             }
           });
         });
-
         const freqData = Object.entries(cropCount).map(([name, value]) => ({
           name,
           value,
         }));
         setCropFrequency(freqData);
 
-        // -------------------------------------------
-        // 3️⃣ Yield Trends (Month + Year)
-        // -------------------------------------------
+        // 3️⃣ Yield Trends — Month + Year
         const monthly = {};
         farms.forEach((farm) => {
           (farm.tasks || []).forEach((task) => {
@@ -99,18 +92,13 @@ export default function DashboardReports() {
         }));
         setYieldTrends(trendData);
 
-        // -------------------------------------------
         // 4️⃣ Weather Data
-        // -------------------------------------------
         setWeatherData(weather);
 
-        // -------------------------------------------
         // 5️⃣ AI Recommendation
-        // -------------------------------------------
         const avgRain =
           weather.reduce((a, b) => a + (b.rainfall || 0), 0) /
           (weather.length || 1);
-
         const avgYield =
           yieldData.reduce((a, b) => a + b.kilos, 0) /
           (yieldData.length || 1);
@@ -130,31 +118,13 @@ export default function DashboardReports() {
     fetchData();
   }, []);
 
-  // -------------------------------------------
   // Export to Excel
-  // -------------------------------------------
   const handleExportExcel = () => {
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.json_to_sheet(cropYields),
-      "Crop Yields"
-    );
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.json_to_sheet(cropFrequency),
-      "Common Crops"
-    );
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.json_to_sheet(yieldTrends),
-      "Yield Trends"
-    );
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.json_to_sheet(weatherData),
-      "Weather Data"
-    );
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropYields), "Crop Yields");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropFrequency), "Common Crops");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(yieldTrends), "Yield Trends");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(weatherData), "Weather Data");
 
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
 
@@ -166,9 +136,7 @@ export default function DashboardReports() {
     );
   };
 
-  // -------------------------------------------
-  // Print only the graphs
-  // -------------------------------------------
+  // Print Only Graphs
   const handlePrintGraphs = () => {
     const win = window.open("", "", "width=1000,height=800");
     win.document.write(`
@@ -184,11 +152,23 @@ export default function DashboardReports() {
 
   const COLORS = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
-  // -------------------------------------------
-  // FIX: Convert yieldTrends into fake months for Weather vs Yield chart
-  // -------------------------------------------
+  // 🔮 1.4.5 — Predictive Analytics (NEW)
+  const predictiveData = (() => {
+    if (yieldTrends.length < 3) return [];
+
+    const last3 = yieldTrends.slice(-3).map((x) => x.yieldKg);
+    const avg = Math.round(last3.reduce((a, b) => a + b, 0) / 3);
+
+    return [
+      { month: "Next 1 Month", predicted: avg },
+      { month: "Next 2 Months", predicted: Math.round(avg * 1.05) },
+      { month: "Next 3 Months", predicted: Math.round(avg * 1.1) },
+    ];
+  })();
+
+  // Align yield trends for weather chart
   const alignedYieldForWeather = yieldTrends.map((item, index) => ({
-    date: weatherData[index]?.date || `2025-${String(index + 1).padStart(2, "0")}-01`,
+    date: `weatherData[index]?.date || 2025-${String(index + 1).padStart(2, "0")}-01`,
     yieldKg: item.yieldKg,
   }));
 
@@ -209,7 +189,7 @@ export default function DashboardReports() {
 
       {/* Charts */}
       <div ref={printRef}>
-        {/* 1 — Crop Yield */}
+        {/* 1.4.1 Crop Yield */}
         <div className="chart-section mb-10">
           <h3 className="font-semibold text-gray-700 mb-2">1.4.1 Crop Yield Summary</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -224,20 +204,12 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 2 — Common Crops */}
+        {/* 1.4.2 Common Crops */}
         <div className="chart-section mb-10">
           <h3 className="font-semibold text-gray-700 mb-2">1.4.2 Most Commonly Planted Crops</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
-              <Pie
-                data={cropFrequency}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label
-              >
+              <Pie data={cropFrequency} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                 {cropFrequency.map((entry, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
@@ -247,7 +219,7 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 3 — Yield Trend */}
+        {/* 1.4.3 Yield Trends */}
         <div className="chart-section mb-10">
           <h3 className="font-semibold text-gray-700 mb-2">1.4.3 Yield Trend Over Seasons</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -261,7 +233,23 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 4 — Weather vs Yield */}
+        {/* 🔮 1.4.5 Predictive Analytics (NEW BLOCK) */}
+        {predictiveData.length > 0 && (
+          <div className="chart-section mb-10">
+            <h3 className="font-semibold text-gray-700 mb-2">1.4.5 Predictive Analytics on Expected Yields</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={predictiveData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="predicted" stroke="#eab308" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* 1.4.6 Weather vs Yield */}
         {weatherData.length > 0 && (
           <div className="chart-section mb-10">
             <h3 className="font-semibold text-gray-700 mb-2">
@@ -277,7 +265,6 @@ export default function DashboardReports() {
                 <Tooltip />
                 <Legend />
 
-                {/* Rainfall Line */}
                 <Line
                   yAxisId="left"
                   type="monotone"
@@ -287,7 +274,6 @@ export default function DashboardReports() {
                   strokeWidth={2}
                 />
 
-                {/* Yield Kilos — FIXED WITH FAKE MONTHS */}
                 <Line
                   yAxisId="right"
                   type="monotone"
