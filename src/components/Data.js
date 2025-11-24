@@ -540,7 +540,7 @@ const handleAddFarmer = async (e) => {
 
 <div className="flex gap-4 mb-4">
 
-  {/* CROP FILTER */}
+  {/* CROP SELECT FILTER (Existing) */}
   <select
     value={cropFilter}
     onChange={(e) => setCropFilter(e.target.value)}
@@ -554,7 +554,7 @@ const handleAddFarmer = async (e) => {
     ))}
   </select>
 
-  {/* COMMON CROP FILTER */}
+  {/* COMMON CROP FILTER (NEW) */}
   <select
     value={commonCropFilter}
     onChange={(e) => setCommonCropFilter(e.target.value)}
@@ -564,26 +564,7 @@ const handleAddFarmer = async (e) => {
     <option value="monthly">Monthly Common Crop</option>
     <option value="yearly">Yearly Common Crop</option>
   </select>
-
-  {/* ⭐ NEW: BARANGAY FILTER */}
-  <select
-    value={barangayFilter}
-    onChange={(e) => setBarangayFilter(e.target.value)}
-    className="border p-2 rounded"
-  >
-    <option value="all">All Barangays</option>
-    {[
-      "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan","Balele",
-      "Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog","Boot","Cale","Darasa",
-      "Gonzales","Hidalgo","Janopol","Janopol Oriental","Laurel","Luyos","Mabini","Malaking Pulo",
-      "Maria Paz","Maugat","Montaña (Ik-ik)","Natatas","Pagaspas","Pantay Bata","Pantay Matanda",
-      "Poblacion 1","Poblacion 2","Poblacion 3","Poblacion 4","Poblacion 5","Poblacion 6",
-      "Poblacion 7","Sala","Sambat","San Jose","Santol","Santor","Sulpoc","Suplang","Talaga",
-      "Tinurik","Trapiche","Wawa","Ulango"
-    ].map((b, i) => (
-      <option key={i} value={b}>{b}</option>
-    ))}
-  </select>
+  
 </div>
 
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -642,23 +623,19 @@ const handleAddFarmer = async (e) => {
   if (fieldsWithCrop.length === 0) return []; // hide user
 
   // 👉 NOW APPLY CROP FILTER
-const filteredFields = fieldsWithCrop.filter((fm) => {
+  const filteredFields = fieldsWithCrop.filter((fm) => {
   const crop = fm.selectedCrop?.toLowerCase();
 
-  // Crop filter
-  if (cropFilter !== "all" && crop !== cropFilter.toLowerCase())
+  // Normal crop filter
+  if (cropFilter !== "all" && crop !== cropFilter.toLowerCase()) 
     return false;
 
-  // Common monthly crop
+  // Common Monthly
   if (commonCropFilter === "monthly" && crop !== commonMonthlyCrop)
     return false;
 
-  // Common yearly crop
+  // Common Yearly
   if (commonCropFilter === "yearly" && crop !== commonYearlyCrop)
-    return false;
-
-  // ⭐ Barangay filter
-  if (barangayFilter !== "all" && f.barangay !== barangayFilter)
     return false;
 
   return true;
