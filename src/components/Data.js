@@ -363,7 +363,7 @@ const handleAddFarmer = async (e) => {
   const matchSearch = f.username
     ?.toLowerCase()
     .includes(search.toLowerCase());
-  
+
   if (!matchSearch) return false;
 
   // 🌾 3. CROP FILTER (unchanged)
@@ -537,6 +537,21 @@ const handleAddFarmer = async (e) => {
         <div className="bg-white rounded-xl p-6 shadow">
           <div className="flex justify-between items-center mb-4">
             {/* Crop Filter */}
+<div className="mb-4">
+  <select
+    value={cropFilter}
+    onChange={(e) => setCropFilter(e.target.value)}
+    className="border p-2 rounded"
+  >
+    <option value="all">All Crops</option>
+    {allCrops.map((crop, index) => (
+      <option key={index} value={crop}>
+        {crop}
+      </option>
+    ))}
+  </select>
+  
+</div>
 
 <div className="flex gap-4 mb-4">
 
@@ -564,7 +579,7 @@ const handleAddFarmer = async (e) => {
     <option value="monthly">Monthly Common Crop</option>
     <option value="yearly">Yearly Common Crop</option>
   </select>
-  
+
 </div>
 
             <h2 className="text-lg font-semibold flex items-center gap-2">
