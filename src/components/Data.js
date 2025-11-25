@@ -82,7 +82,7 @@ const fetchAllCrops = async () => {
   try {
     const res = await axios.get(`${baseUrl}/crops`);
     if (res.data) {
-      setAllCrops(res.data.map((c) => c.name)); // extract crop names
+      setAllCrops(res.data); // extract crop names
     }
   } catch (err) {
     toast.error("Failed to load crop list");
@@ -537,39 +537,37 @@ const handleAddFarmer = async (e) => {
         <div className="bg-white rounded-xl p-6 shadow">
           <div className="flex justify-between items-center mb-4">
             {/* Crop Filter */}
-<div className="mb-4">
-  <select
-    value={cropFilter}
-    onChange={(e) => setCropFilter(e.target.value)}
-    className="border p-2 rounded"
-  >
-    <option value="all">All Crops</option>
-    {allCrops.map((crop, index) => (
-      <option key={index} value={crop}>
-        {crop}
-      </option>
-    ))}
-  </select>
-  
-</div>
+
 
 <div className="flex gap-4 mb-4">
-
-  {/* CROP SELECT FILTER (Existing) */}
+  {/* CROP FILTER (GROUPED BY DATABASE FIELD) */}
   <select
     value={cropFilter}
     onChange={(e) => setCropFilter(e.target.value)}
     className="border p-2 rounded"
   >
     <option value="all">All Crops</option>
-    {allCrops.map((crop, index) => (
-      <option key={index} value={crop}>
-        {crop}
-      </option>
+
+    {/* Auto-group crops from database */}
+    {Object.entries(
+      allCrops.reduce((groups, crop) => {
+        const g = crop.group || "Others";
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(crop.name);
+        return groups;
+      }, {})
+    ).map(([groupName, crops]) => (
+      <optgroup key={groupName} label={groupName}>
+        {crops.map((crop) => (
+          <option key={crop} value={crop}>
+            {crop}
+          </option>
+        ))}
+      </optgroup>
     ))}
   </select>
 
-  {/* COMMON CROP FILTER (NEW) */}
+  {/* COMMON CROP FILTER */}
   <select
     value={commonCropFilter}
     onChange={(e) => setCommonCropFilter(e.target.value)}
@@ -580,6 +578,27 @@ const handleAddFarmer = async (e) => {
     <option value="yearly">Yearly Common Crop</option>
   </select>
 
+  {/* BARANGAY FILTER (NEW) */}
+  <select
+    value={barangayFilter}
+    onChange={(e) => setBarangayFilter(e.target.value)}
+    className="border p-2 rounded"
+  >
+    <option value="all">All Barangays</option>
+    {[
+      "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan","Balele",
+      "Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog","Boot","Cale","Darasa",
+      "Gonzales","Hidalgo","Janopol","Janopol Oriental","Laurel","Luyos","Mabini","Malaking Pulo",
+      "Maria Paz","Maugat","Montaña (Ik-ik)","Natatas","Pagaspas","Pantay Bata","Pantay Matanda",
+      "Poblacion 1","Poblacion 2","Poblacion 3","Poblacion 4","Poblacion 5","Poblacion 6",
+      "Poblacion 7","Sala","Sambat","San Jose","Santol","Santor","Sulpoc","Suplang","Talaga",
+      "Tinurik","Trapiche","Wawa","Ulango"
+    ].map((b) => (
+      <option key={b} value={b}>
+        {b}
+      </option>
+    ))}
+  </select>
 </div>
 
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -622,6 +641,7 @@ const handleAddFarmer = async (e) => {
               <thead className="bg-emerald-100 sticky top-0">
                 <tr>
                   <th className="p-2">Farmer</th>
+                  <th className="p-2">Barangay</th>
                   <th className="p-2">Field</th>
                   <th className="p-2">Crop</th>
                   <th className="p-2">Status</th>
@@ -659,7 +679,8 @@ const handleAddFarmer = async (e) => {
   return filteredFields.map((fm) => (
     <tr key={fm._id} className="border-b hover:bg-gray-50">
       <td className="p-2">{f.username}</td>
-      <td className="p-2">{fm.fieldName}</td>
+<td className="p-2">{f.barangay || "—"}</td>   {/* NEW */}
+<td className="p-2">{fm.fieldName}</td>
       <td className="p-2">{fm.selectedCrop}</td>
       <td className="p-2">
         {fm.archived ? (
