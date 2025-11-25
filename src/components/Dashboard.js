@@ -27,7 +27,35 @@ export default function Dashboard() {
   const [cropList, setCropList] = useState([]);
   const [selectedCrops, setSelectedCrops] = useState([]);
   const [savingOversupply, setSavingOversupply] = useState(false);
+const [showSoilModal, setShowSoilModal] = useState(false);
+const [soilTypes, setSoilTypes] = useState([]);
+const [newSoilName, setNewSoilName] = useState("");
+const [newSoilDescription, setNewSoilDescription] = useState("");
 
+const fetchSoilTypes = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/soiltypes`);
+    setSoilTypes(res.data.data || []);
+  } catch (err) {
+    console.error("Failed loading soil types:", err);
+  }
+};
+
+const addSoilType = async () => {
+  try {
+    await axios.post(`${baseUrl}/api/soiltypes`, {
+      name: newSoilName,
+      description: newSoilDescription,
+    });
+
+    fetchSoilTypes();
+    setNewSoilName("");
+    setNewSoilDescription("");
+    alert("✔ Soil type added!");
+  } catch (err) {
+    alert("Failed to add soil type");
+  }
+};
   // ----------------------------------------------------
   // FETCH CROPS (for oversupply modal)
   // ----------------------------------------------------
@@ -178,26 +206,37 @@ export default function Dashboard() {
           System Overview
         </h1>
 
-        <div className="flex gap-3">
-          {/* EDIT OVERSUPPLY BUTTON */}
-          <button
-            onClick={() => {
-              fetchCropList();
-              setShowModal(true);
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Edit Oversupply
-          </button>
+       <div className="flex gap-3">
+  {/* EDIT OVERSUPPLY BUTTON */}
+  <button
+    onClick={() => {
+      fetchCropList();
+      setShowModal(true);
+    }}
+    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+  >
+    Edit Oversupply
+  </button>
 
-          {/* REFRESH BUTTON */}
-          <button
-            onClick={fetchDashboardData}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-          >
-            Refresh Dashboard
-          </button>
-        </div>
+  {/* NEW: SOIL TYPE BUTTON */}
+  <button
+    onClick={() => {
+      fetchSoilTypes();
+      setShowSoilModal(true);
+    }}
+    className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition"
+  >
+    Soil Types
+  </button>
+
+  {/* REFRESH BUTTON */}
+  <button
+    onClick={fetchDashboardData}
+    className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+  >
+    Refresh Dashboard
+  </button>
+</div>
       </div>
 
       {/* ======================= OVERSUPPLY MODAL ======================= */}
@@ -241,7 +280,56 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+{showSoilModal && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white w-[450px] max-h-[80vh] rounded-xl shadow-lg p-6 overflow-y-auto">
+      <h2 className="text-lg font-bold mb-4 text-gray-800">Soil Types</h2>
 
+      {/* ADD NEW SOIL TYPE */}
+      <div className="mb-4">
+        <input
+          className="border p-2 w-full mb-2 rounded"
+          placeholder="Soil Type Name"
+          value={newSoilName}
+          onChange={(e) => setNewSoilName(e.target.value)}
+        />
+        <input
+          className="border p-2 w-full mb-2 rounded"
+          placeholder="Description"
+          value={newSoilDescription}
+          onChange={(e) => setNewSoilDescription(e.target.value)}
+        />
+        <button
+          onClick={addSoilType}
+          className="bg-orange-600 text-white px-4 py-2 rounded w-full"
+        >
+          Add Soil Type
+        </button>
+      </div>
+
+      {/* LIST SOIL TYPES */}
+      <div className="mt-4">
+        {soilTypes.map((s) => (
+          <div key={s._id} className="border-b py-2 flex justify-between">
+            <div>
+              <p className="font-medium">{s.name}</p>
+              <p className="text-sm text-gray-600">{s.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end mt-5">
+        <button
+          className="px-4 py-2 bg-gray-300 rounded-lg"
+          onClick={() => setShowSoilModal(false)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {/* REST OF UI BELOW (unchanged) */}
       {/* SYSTEM HEALTH CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
