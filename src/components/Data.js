@@ -882,7 +882,7 @@ const handleAddFarmer = async (e) => {
       ============================================================ */}
       {showViewModal && selectedFarmer && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow relative">
+          <div className="bg-white p-6 rounded-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto shadow relative">
             <button
               className="absolute top-3 right-3 text-gray-500"
               onClick={() => setShowViewModal(false)}
@@ -896,7 +896,31 @@ const handleAddFarmer = async (e) => {
             <p><strong>Phone:</strong> {selectedFarmer.phone || "—"}</p>
             <p><strong>Email:</strong> {selectedFarmer.email || "—"}</p>
             <p><strong>Barangay:</strong> {selectedFarmer.barangay || "—"}</p>
+            {/* Barangay Residency Certificate */}
+<h4 className="text-md font-semibold mt-4 mb-2">
+  Barangay Residency Certificate
+</h4>
 
+{selectedFarmer.barangayResidencyCert ? (
+  <div className="border p-3 rounded-lg bg-gray-50">
+    <a
+      href={`https://smartcrop-backend-1.onrender.com${selectedFarmer.barangayResidencyCert}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <img
+        src={`https://smartcrop-backend-1.onrender.com${selectedFarmer.barangayResidencyCert}`}
+        alt="Residency Certificate"
+        className="w-full h-auto rounded-lg shadow"
+      />
+    </a>
+    <p className="text-xs text-gray-500 mt-2">
+      Click image to view full size.
+    </p>
+  </div>
+) : (
+  <p className="text-red-500 font-medium">No upload provided.</p>
+)}
             <h4 className="text-md font-semibold mt-4 mb-2">Fields:</h4>
 
             {selectedFarmerFields.length === 0 ? (
