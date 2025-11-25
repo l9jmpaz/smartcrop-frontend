@@ -550,21 +550,21 @@ const handleAddFarmer = async (e) => {
 
     {/* Auto-group crops from database */}
     {Object.entries(
-      allCrops.reduce((groups, crop) => {
-        const g = crop.group || "Others";
-        if (!groups[g]) groups[g] = [];
-        groups[g].push(crop.name);
-        return groups;
-      }, {})
-    ).map(([groupName, crops]) => (
-      <optgroup key={groupName} label={groupName}>
-        {crops.map((crop) => (
-          <option key={crop} value={crop}>
-            {crop}
-          </option>
-        ))}
-      </optgroup>
+  allCrops.reduce((groups, crop) => {
+    const g = crop.group || "Others";
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(crop.name); // ✅ FIXED — no brackets, no markdown link
+    return groups;
+  }, {})
+).map(([groupName, crops]) => (
+  <optgroup key={groupName} label={groupName}>
+    {crops.map((crop) => (
+      <option key={crop} value={crop}>
+        {crop}
+      </option>
     ))}
+  </optgroup>
+))}
   </select>
 
   {/* COMMON CROP FILTER */}
