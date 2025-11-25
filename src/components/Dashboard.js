@@ -40,6 +40,17 @@ const fetchSoilTypes = async () => {
     console.error("Failed loading soil types:", err);
   }
 };
+const deleteSoilType = async (id) => {
+  if (!window.confirm("Delete this soil type?")) return;
+
+  try {
+    await axios.delete(`${baseUrl}/api/soiltypes/${id}`);
+    fetchSoilTypes();
+  } catch (err) {
+    console.error("Delete soil type failed:", err);
+    alert("Failed to delete soil type");
+  }
+};
 
 const addSoilType = async () => {
   try {
@@ -281,52 +292,76 @@ const addSoilType = async () => {
         </div>
       )}
 {showSoilModal && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white w-[450px] max-h-[80vh] rounded-xl shadow-lg p-6 overflow-y-auto">
-      <h2 className="text-lg font-bold mb-4 text-gray-800">Soil Types</h2>
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 max-h-[85vh] overflow-y-auto">
+      {/* HEADER */}
+      <h2 className="text-xl font-bold mb-4 text-gray-800 flex justify-between items-center">
+        Soil Types
+        <button
+          onClick={() => setShowSoilModal(false)}
+          className="text-gray-500 hover:text-black"
+        >
+          ✕
+        </button>
+      </h2>
 
-      {/* ADD NEW SOIL TYPE */}
-      <div className="mb-4">
+      {/* ADD NEW SOIL TYPE FORM */}
+      <div className="mb-5 border p-3 rounded-lg bg-gray-50">
+        <h3 className="font-medium text-gray-700 mb-2">Add Soil Type</h3>
+
         <input
-          className="border p-2 w-full mb-2 rounded"
+          className="border p-2 w-full rounded mb-2 text-sm"
           placeholder="Soil Type Name"
           value={newSoilName}
           onChange={(e) => setNewSoilName(e.target.value)}
         />
-        <input
-          className="border p-2 w-full mb-2 rounded"
-          placeholder="Description"
+
+        <textarea
+          className="border p-2 w-full rounded mb-2 text-sm"
+          placeholder="Description (optional)"
+          rows={3}
           value={newSoilDescription}
           onChange={(e) => setNewSoilDescription(e.target.value)}
         />
+
         <button
           onClick={addSoilType}
-          className="bg-orange-600 text-white px-4 py-2 rounded w-full"
+          className="bg-orange-600 text-white px-4 py-2 rounded w-full text-sm hover:bg-orange-700 transition"
         >
           Add Soil Type
         </button>
       </div>
 
-      {/* LIST SOIL TYPES */}
-      <div className="mt-4">
-        {soilTypes.map((s) => (
-          <div key={s._id} className="border-b py-2 flex justify-between">
-            <div>
-              <p className="font-medium">{s.name}</p>
-              <p className="text-sm text-gray-600">{s.description}</p>
-            </div>
+      {/* SOIL TYPE LIST */}
+      <div>
+        <h3 className="font-medium text-gray-700 mb-3">Existing Soil Types</h3>
+
+        {soilTypes.length === 0 ? (
+          <p className="text-gray-500 italic text-sm">No soil types added yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {soilTypes.map((soil) => (
+              <div
+                key={soil._id}
+                className="border rounded-lg p-3 flex justify-between items-center hover:bg-gray-100 transition"
+              >
+                <div className="w-[75%]">
+                  <p className="font-semibold text-gray-800">{soil.name}</p>
+                  <p className="text-xs text-gray-600">{soil.description}</p>
+                </div>
+
+                <button
+                  onClick={() => deleteSoilType(soil._id)}
+                  className="text-red-600 hover:text-red-800 text-sm font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      <div className="flex justify-end mt-5">
-        <button
-          className="px-4 py-2 bg-gray-300 rounded-lg"
-          onClick={() => setShowSoilModal(false)}
-        >
-          Close
-        </button>
-      </div>
     </div>
   </div>
 )}
