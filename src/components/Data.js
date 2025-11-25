@@ -89,31 +89,143 @@ const fetchAllCrops = async () => {
     toast.error("Failed to load crop list");
   }
 };
+// FAST YIELD TREND CALC — No backend calls
+function computeYieldTrend(farms) {
+  let harvests = [];
+
+  farms.forEach(f => {
+    (f.tasks || []).forEach(t => {
+      if (t.type === "Harvesting" && t.completed && t.kilos > 0) {
+        harvests.push({
+          date: new Date(t.date),
+          kilos: t.kilos
+        });
+      }
+    });
+  });
+
+  if (harvests.length < 2) {
+    return { trend: 0, label: "0.0%" };
+  }
+
+  harvests.sort((a, b) => a.date - b.date);
+
+  const prev = harvests[harvests.length - 2].kilos;
+  const last = harvests[harvests.length - 1].kilos;
+
+  const diff = ((last - prev) / prev) * 100;
+
+  return {
+    trend: diff,
+    label: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`
+  };
+}
   /* ============================================================
      FETCH FARMERS + FIELDS + YIELDS
   ============================================================ */
   const fetchFarmers = async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
+      const usersRes = await axios.get(`${baseUrl}/users`);
+      const users = usersRes.data?.data || [];
+      const usersWithBanFlag = users.map(u => ({
+  ...u,
+  isBanned: u.isBanned || false   // ⭐ add default value
+}));
 
-    const res = await axios.get(`${baseUrl}/fast/farmers`);
-    const users = res.data.data || [];
+      const farmsWithUsers = await Promise.all(
+        usersWithBanFlag.map(async (user) => {
+          try {
+            const farmRes = await axios.get(`${baseUrl}/farm/${user._id}`);
+            return { ...user, farms: farmRes.data?.farms || [] };
+          } catch {
+            return { ...user, farms: [] };
+          }
+        })
+      );
 
-    // Add default flags
-    const usersWithDefaults = users.map(u => ({
-      ...u,
-      isBanned: u.isBanned || false,
-      farms: u.farms || []
-    }));
+      setFarmers(farmsWithUsers);
+      // ============================================================
+// COMMON CROP ANALYSIS (MONTHLY + YEARLY)
+// ============================================================
+let monthlyCount = {};  // { "January": {corn: 3, rice: 1}, ... }
+let yearlyCount = {};   // { "2024": {corn: 5, onion: 2}, ... }
 
-    setFarmers(usersWithDefaults);
+farmsWithUsers.forEach((farmer) => {
+  farmer.farms.forEach((fm) => {
+    if (!fm.selectedCrop || !fm.completedAt) return;
 
-  } catch (err) {
-    toast.error("Failed to load farmers");
-  } finally {
-    setLoading(false);
-  }
-};
+    const d = new Date(fm.completedAt);
+    const month = d.toLocaleString("default", { month: "long" });
+    const year = d.getFullYear();
+    const crop = fm.selectedCrop.toLowerCase();
+
+    // Monthly
+    if (!monthlyCount[month]) monthlyCount[month] = {};
+    monthlyCount[month][crop] = (monthlyCount[month][crop] || 0) + 1;
+
+    // Yearly
+    if (!yearlyCount[year]) yearlyCount[year] = {};
+    yearlyCount[year][crop] = (yearlyCount[year][crop] || 0) + 1;
+  });
+});
+
+// FIND MOST COMMON MONTHLY CROP
+let commonMonthly = null;
+Object.keys(monthlyCount).forEach((month) => {
+  const crops = monthlyCount[month];
+  const top = Object.keys(crops).reduce((a, b) =>
+    crops[a] > crops[b] ? a : b
+  );
+  if (!commonMonthly) commonMonthly = top;
+});
+
+// FIND MOST COMMON YEARLY CROP
+let commonYearly = null;
+Object.keys(yearlyCount).forEach((year) => {
+  const crops = yearlyCount[year];
+  const top = Object.keys(crops).reduce((a, b) =>
+    crops[a] > crops[b] ? a : b
+  );
+  if (!commonYearly) commonYearly = top;
+});
+
+setCommonMonthlyCrop(commonMonthly);
+setCommonYearlyCrop(commonYearly);
+
+      // ----- CALCULATE YIELD TREND -----
+// ----- CALCULATE YIELD TREND USING BACKEND -----
+// ---- FAST YIELD TREND (NO API CALLS) ----
+farmsWithUsers.forEach(farmer => {
+  const result = computeYieldTrend(farmer.farms || []);
+  farmer.yieldTrend = result.trend;
+  farmer.yieldTrendLabel = result.label;
+});
+
+// ----- BUILD CROP FILTER LIST -----
+const cList = [];
+farmsWithUsers.forEach((farmer) => {
+  farmer.farms.forEach((f) => {
+    if (f.archived && f.selectedCrop && f.completedAt) {
+      const d = new Date(f.completedAt);
+      const label = `${d.toLocaleString("default", {
+        month: "long",
+      })} ${d.getFullYear()} - ${f.selectedCrop}`;
+      cList.push({
+        value: `${f.selectedCrop}_${d.getMonth() + 1}_${d.getFullYear()}`,
+        label,
+      });
+    }
+  });
+});
+setCropFilterList(cList);
+
+    } catch {
+      toast.error("Failed to load farmers.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ============================================================
      FETCH WEATHER
