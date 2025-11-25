@@ -921,6 +921,30 @@ const handleAddFarmer = async (e) => {
 ) : (
   <p className="text-red-500 font-medium">No upload provided.</p>
 )}
+
+{/* VALID ID */}
+<h4 className="text-md font-semibold mt-4 mb-2">Valid ID</h4>
+
+{selectedFarmer.validId ? (
+  <div className="border p-3 rounded-lg bg-gray-50">
+    <a
+      href={`https://smartcrop-backend-1.onrender.com${selectedFarmer.validId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <img
+        src={`https://smartcrop-backend-1.onrender.com${selectedFarmer.validId}`}
+        alt="Valid ID"
+        className="w-full h-auto rounded-lg shadow"
+      />
+    </a>
+    <p className="text-xs text-gray-500 mt-2">
+      Click image to view full size.
+    </p>
+  </div>
+) : (
+  <p className="text-red-500 font-medium">No valid ID uploaded.</p>
+)}
             <h4 className="text-md font-semibold mt-4 mb-2">Fields:</h4>
 
             {selectedFarmerFields.length === 0 ? (
