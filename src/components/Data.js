@@ -43,6 +43,7 @@ export default function Data() {
 const [allCrops, setAllCrops] = useState([]);
   const [selectedCropField, setSelectedCropField] = useState(null);
 const [cropFilter, setCropFilter] = useState("all");
+const [barangayFilter, setBarangayFilter] = useState("all");
 const [cropFilterList, setCropFilterList] = useState([]);
 const [commonCropFilter, setCommonCropFilter] = useState("all");
 const [commonMonthlyCrop, setCommonMonthlyCrop] = useState(null);
