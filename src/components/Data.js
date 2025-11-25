@@ -97,9 +97,13 @@ const fetchAllCrops = async () => {
       setLoading(true);
       const usersRes = await axios.get(`${baseUrl}/users`);
       const users = usersRes.data?.data || [];
+      const usersWithBanFlag = users.map(u => ({
+  ...u,
+  isBanned: u.isBanned || false   // ⭐ add default value
+}));
 
       const farmsWithUsers = await Promise.all(
-        users.map(async (user) => {
+        usersWithBanFlag.map(async (user) => {
           try {
             const farmRes = await axios.get(`${baseUrl}/farm/${user._id}`);
             return { ...user, farms: farmRes.data?.farms || [] };
@@ -233,7 +237,23 @@ setCropFilterList(cList);
   }
 };
 
+const toggleBan = async (farmer) => {
+  const newStatus = !farmer.isBanned;
 
+  try {
+    await axios.put(`${baseUrl}/users/${farmer._id}/ban`, { isBanned: newStatus });
+
+    setFarmers(prev =>
+      prev.map(f =>
+        f._id === farmer._id ? { ...f, isBanned: newStatus } : f
+      )
+    );
+
+    toast.success(newStatus ? "Farmer banned" : "Farmer unbanned");
+  } catch (err) {
+    toast.error("Failed to update ban status");
+  }
+};
   /* ============================================================
      DELETE FARMER
   ============================================================ */
@@ -468,6 +488,8 @@ const handleAddFarmer = async (e) => {
               <th className="p-2">Name</th>
               <th className="p-2">Phone</th>
               <th className="p-2">Email</th>
+              <th className="p-2">Status</th>
+              <th className="p-2">Ban Status</th>
               <th className="p-2">Yield Trend</th>
               <th className="p-2 text-right">Actions</th>
             </tr>
@@ -479,7 +501,28 @@ const handleAddFarmer = async (e) => {
                 <td className="p-2">{f.username}</td>
                 <td className="p-2">{f.phone || "—"}</td>
                 <td className="p-2">{f.email || "—"}</td>
-
+                <td className="p-2">
+  <span
+    className={`px-2 py-1 rounded text-xs font-medium ${
+      String(f.status).toLowerCase() === "active"
+        ? "bg-green-100 text-green-700"
+        : "bg-red-100 text-red-700"
+    }`}
+  >
+    {f.status || "Inactive"}
+  </span>
+</td>
+<td className="p-2">
+  {f.isBanned ? (
+    <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-700">
+      Banned
+    </span>
+  ) : (
+    <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+      OK
+    </span>
+  )}
+</td>
                 {/* YIELD TREND */}
                 <td className="p-2">
                   <span
@@ -503,7 +546,14 @@ const handleAddFarmer = async (e) => {
                   >
                     View Details
                   </button>
-
+                  <button
+  onClick={() => toggleBan(f)}
+  className={`font-medium ${
+    f.isBanned ? "text-green-600" : "text-red-600"
+  }`}
+>
+  {f.isBanned ? "Unban" : "Ban"}
+</button>
                   <button
                     onClick={() => editFarmer(f._id, f)}
                     className="text-blue-600"
@@ -531,6 +581,7 @@ const handleAddFarmer = async (e) => {
 
   </div>
 )}
+
       {/* ============================================================
           CROPS TAB — WITH STATUS + VIEW DETAILS + EXPORT
       ============================================================ */}
