@@ -241,7 +241,9 @@ const toggleBan = async (farmer) => {
   const newStatus = !farmer.isBanned;
 
   try {
-    await axios.put(`${baseUrl}/users/${farmer._id}/ban`, { isBanned: newStatus });
+    await axios.patch(`${baseUrl}/users/${farmer._id}/ban`, {
+      isBanned: newStatus,
+    });
 
     setFarmers(prev =>
       prev.map(f =>
@@ -251,6 +253,7 @@ const toggleBan = async (farmer) => {
 
     toast.success(newStatus ? "Farmer banned" : "Farmer unbanned");
   } catch (err) {
+    console.error(err);
     toast.error("Failed to update ban status");
   }
 };
