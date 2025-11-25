@@ -659,19 +659,23 @@ const handleAddFarmer = async (e) => {
   if (fieldsWithCrop.length === 0) return []; // hide user
 
   // 👉 NOW APPLY CROP FILTER
-  const filteredFields = fieldsWithCrop.filter((fm) => {
+ const filteredFields = fieldsWithCrop.filter((fm) => {
   const crop = fm.selectedCrop?.toLowerCase();
 
-  // Normal crop filter
-  if (cropFilter !== "all" && crop !== cropFilter.toLowerCase()) 
+  // Crop filter
+  if (cropFilter !== "all" && crop !== cropFilter.toLowerCase())
     return false;
 
-  // Common Monthly
+  // Common monthly
   if (commonCropFilter === "monthly" && crop !== commonMonthlyCrop)
     return false;
 
-  // Common Yearly
+  // Common yearly
   if (commonCropFilter === "yearly" && crop !== commonYearlyCrop)
+    return false;
+
+  // Barangay filter (NEW)
+  if (barangayFilter !== "all" && f.barangay !== barangayFilter)
     return false;
 
   return true;
