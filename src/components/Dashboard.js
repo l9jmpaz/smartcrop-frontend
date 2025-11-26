@@ -31,7 +31,28 @@ const [showSoilModal, setShowSoilModal] = useState(false);
 const [soilTypes, setSoilTypes] = useState([]);
 const [newSoilName, setNewSoilName] = useState("");
 const [newSoilDescription, setNewSoilDescription] = useState("");
+const [showAlertModal, setShowAlertModal] = useState(false);
+const [activeAlerts, setActiveAlerts] = useState([]);
+const [recentAlerts, setRecentAlerts] = useState([]);
+const fetchActiveAlerts = async () => {
+  const res = await axios.get(`${baseUrl}/api/alerts/active`);
+  setActiveAlerts(res.data);
+};
 
+const resolveAlert = async (id) => {
+  await axios.put(`${baseUrl}/api/alerts/${id}/resolve`);
+  fetchActiveAlerts();
+  fetchResolvedAlerts();
+  fetchDashboardData(); // refresh alert count
+};
+const fetchResolvedAlerts = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/alerts/resolved`);
+    setRecentAlerts(res.data);
+  } catch (err) {
+    console.error("Error loading resolved alerts:", err);
+  }
+};
 const fetchSoilTypes = async () => {
   try {
     const res = await axios.get(`${baseUrl}/api/soiltypes`);
@@ -191,6 +212,7 @@ const addSoilType = async () => {
   // ----------------------------------------------------
   useEffect(() => {
     fetchDashboardData();
+    fetchResolvedAlerts();
     const polling = setTimeout(function refresh() {
       fetchActiveFarmersOnly();
       return setTimeout(refresh, 10000);
@@ -291,6 +313,41 @@ const addSoilType = async () => {
           </div>
         </div>
       )}
+      {showAlertModal && (
+ <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+   <div className="bg-white w-[420px] rounded-xl shadow-lg p-6 max-h-[80vh] overflow-y-auto">
+
+     <h2 className="text-lg font-bold mb-4">Active Alerts</h2>
+
+     {activeAlerts.length === 0 ? (
+       <p className="text-gray-500">No active alerts.</p>
+     ) : (
+       activeAlerts.map(a => (
+         <div key={a._id} className="border p-3 rounded-lg mb-3">
+           <p className="font-semibold">{a.message}</p>
+           <p className="text-sm text-gray-600">Severity: {a.severity}</p>
+           <p className="text-sm text-gray-600">Affects: {a.affects}</p>
+
+           <button
+             className="mt-2 bg-emerald-600 text-white px-3 py-1 rounded text-sm"
+             onClick={() => resolveAlert(a._id)}
+           >
+             ✔ Mark as Resolved
+           </button>
+         </div>
+       ))
+     )}
+
+     <button
+       onClick={() => setShowAlertModal(false)}
+       className="mt-4 w-full bg-gray-300 py-2 rounded-lg"
+     >
+       Close
+     </button>
+
+   </div>
+ </div>
+)}
 {showSoilModal && (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
     <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 max-h-[85vh] overflow-y-auto">
@@ -395,6 +452,11 @@ const addSoilType = async () => {
               ? "System issues detected"
               : "No critical alerts"}
           </p>
+          <button
+  onClick={() => setShowAlertModal(true)}
+  className="mt-3 bg-red-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-700"
+>  View Alerts
+</button>
         </div>
 
         <div className="bg-gray-100 rounded-xl p-5">
@@ -417,45 +479,51 @@ const addSoilType = async () => {
       </div>
 
       {/* ALERTS TABLE */}
-      <div className="bg-gray-100 rounded-xl p-5">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">
-          Recent Alerts
-        </h2>
+      <div className="bg-gray-100 rounded-xl p-5 mt-6">
+  <h2 className="text-lg font-semibold text-gray-800 mb-3">
+    Recent Resolved Alerts
+  </h2>
 
-        {alerts.length === 0 ? (
-          <p className="text-gray-500 text-sm">No recent alerts.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-gray-700">
-              <thead className="border-b border-gray-300">
-                <tr>
-                  <th className="py-2 text-left">Alert</th>
-                  <th className="py-2 text-left">Severity</th>
-                  <th className="py-2 text-left">Time</th>
-                  <th className="py-2 text-left">Affects</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alerts.slice(0, 3).map((a, idx) => (
-                  <tr
-                    key={idx}
-                    className="border-b border-gray-200 hover:bg-gray-200/40 transition"
-                  >
-                    <td className="py-2">{a.message || "—"}</td>
-                    <td className="py-2">{a.severity || "Info"}</td>
-                    <td className="py-2">
-                      {new Date(a.timestamp).toLocaleTimeString()}
-                    </td>
-                    <td className="py-2">{a.affects || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+  {recentAlerts.length === 0 ? (
+    <p className="text-gray-500 text-sm italic">No resolved alerts yet.</p>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-gray-700">
+        <thead className="border-b border-gray-300">
+          <tr>
+            <th className="py-2 text-left">Alert</th>
+            <th className="py-2 text-left">Severity</th>
+            <th className="py-2 text-left">Resolved By</th>
+            <th className="py-2 text-left">Resolved At</th>
+          </tr>
+        </thead>
 
-        
-      </div>
+        <tbody>
+          {recentAlerts.map((alert, idx) => (
+            <tr
+              key={idx}
+              className="border-b border-gray-200 hover:bg-gray-200/40 transition"
+            >
+              <td className="py-2">{alert.message || "—"}</td>
+
+              <td className="py-2">
+                {alert.severity || "Info"}
+              </td>
+
+              <td className="py-2">
+                {alert.resolvedBy || "System"}
+              </td>
+
+              <td className="py-2">
+                {new Date(alert.resolvedAt).toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
           <DashboardReports />
     </div>
   );
