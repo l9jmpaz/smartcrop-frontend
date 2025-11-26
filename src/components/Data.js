@@ -1116,7 +1116,7 @@ const handleAddFarmer = async (e) => {
 
         {/* Phone */}
         <div>
-          <label className="block mb-1 font-medium text-sm">Phone Number</label>
+          <label className="block mb-1 font-medium text-sm">Phone Number(Inpur only 10 number, starting from 9)</label>
           <div className="flex items-center border rounded-lg bg-gray-50 p-2.5">
             <span className="text-gray-600 pr-2 text-sm">+63</span>
             <input
