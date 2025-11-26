@@ -1117,9 +1117,7 @@ const handleAddFarmer = async (e) => {
         {/* Phone */}
         <div>
           <label className="block mb-1 font-medium text-sm">Phone Number</label>
-          <p className="text-xs italic text-gray-500 mb-1">
-    *Input 10 digits only, starting with 9
-  </p>
+          <p className="text-xs italic text-gray-500 mb-1">*Input 10 digits only, starting with 9</p>
           <div className="flex items-center border rounded-lg bg-gray-50 p-2.5">
             <span className="text-gray-600 pr-2 text-sm">+63</span>
             <input
@@ -1178,7 +1176,7 @@ const handleAddFarmer = async (e) => {
 )}
 {showEditModal && (
   <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-    <div className="bg-white p-5 rounded-2xl w-full max-w-sm shadow relative">
+ <div className="bg-white p-5 rounded-2xl w-full max-w-sm shadow relative max-h-[85vh] overflow-y-auto">
 
       {/* Close button */}
       <button
