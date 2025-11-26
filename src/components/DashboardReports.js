@@ -288,11 +288,6 @@ export default function DashboardReports() {
         )}
       </div>
 
-      {/* Recommendation */}
-      <div className="p-4 bg-white rounded-xl shadow-sm">
-        <h3 className="font-semibold text-gray-700 mb-2">1.4.7 Recommendations for Optimal Planting</h3>
-        <p className="text-gray-600">{recommendation}</p>
-      </div>
     </div>
   );
 }
