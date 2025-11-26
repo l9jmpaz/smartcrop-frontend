@@ -453,9 +453,13 @@ const addSoilType = async () => {
               : "No critical alerts"}
           </p>
           <button
-  onClick={() => setShowAlertModal(true)}
-  className="mt-3 bg-red-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-700"
->  View Alerts
+  onClick={async () => {
+    await fetchActiveAlerts();   // ⬅️ Load alerts first
+    setShowAlertModal(true);     // ⬅️ Then show modal
+  }}
+  className="bg-red-600 text-white px-4 py-2 rounded-lg"
+>
+  View Alerts
 </button>
         </div>
 
