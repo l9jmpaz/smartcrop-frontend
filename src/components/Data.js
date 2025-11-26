@@ -120,6 +120,13 @@ function computeYieldTrend(farms) {
     label: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`
   };
 }
+const [showEditModal, setShowEditModal] = useState(false);
+const [editData, setEditData] = useState({
+  username: "",
+  email: "",
+  phone: "",
+  barangay: ""
+})
   /* ============================================================
      FETCH FARMERS + FIELDS + YIELDS
   ============================================================ */
@@ -288,26 +295,38 @@ const toggleBan = async (farmer) => {
   /* ============================================================
      EDIT FARMER
   ============================================================ */
-  const editFarmer = async (id, farmer) => {
-    const username = prompt("Enter new name:", farmer.username);
-    const barangay = prompt("Enter new barangay:", farmer.barangay);
+  const openEditModal = (farmer) => {
+  setEditData({
+    username: farmer.username,
+    email: farmer.email || "",
+    phone: (farmer.phone || "").replace("+63", ""),
+    barangay: farmer.barangay || ""
+  });
 
-    if (!username || !barangay) return;
+  setSelectedFarmer(farmer);
+  setShowEditModal(true);
+};
 
-    try {
-      const res = await axios.put(`${baseUrl}/users/${id}`, {
-        username,
-        barangay,
-      });
+const saveEditFarmer = async () => {
+  try {
+    await axios.put(`${baseUrl}/users/${selectedFarmer._id}`, {
+      username: editData.username,
+      email: editData.email,
+      phone: "+63" + editData.phone,
+      barangay: editData.barangay,
+    });
 
-      setFarmers((prev) =>
-        prev.map((f) => (f._id === id ? { ...f, ...res.data.data } : f))
-      );
-      toast.success("Updated successfully.");
-    } catch {
-      toast.error("Failed to update.");
-    }
-  };
+    toast.success("Farmer updated!");
+
+    // Refresh UI
+    fetchFarmers();
+    setShowEditModal(false);
+  } catch (err) {
+    toast.error("Update failed");
+  }
+};
+  
+
 
   /* ============================================================
      ADD FARMER
@@ -572,8 +591,9 @@ const handleAddFarmer = async (e) => {
   {f.isBanned ? "Unban" : "Ban"}
 </button>
                   <button
-                    onClick={() => editFarmer(f._id, f)}
-                    className="text-blue-600"
+                    onClick={() => openEditModal(f)}
+                     className="text-blue-600"
+
                   >
                     <Edit size={16} />
                   </button>
@@ -1150,6 +1170,104 @@ const handleAddFarmer = async (e) => {
           Add Farmer
         </button>
       </form>
+    </div>
+  </div>
+)}
+{showEditModal && (
+  <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+    <div className="bg-white p-5 rounded-2xl w-full max-w-sm shadow relative">
+
+      {/* Close button */}
+      <button
+        className="absolute top-3 right-3 text-gray-500"
+        onClick={() => setShowEditModal(false)}
+      >
+        <X size={18} />
+      </button>
+
+      <h3 className="text-xl font-semibold mb-4 text-center">
+        Edit Farmer
+      </h3>
+
+      {/* FORM */}
+      <div className="space-y-4">
+        
+        {/* Full Name */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Full Name</label>
+          <input
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm"
+            value={editData.username}
+            onChange={(e) =>
+              setEditData({ ...editData, username: e.target.value })
+            }
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Email</label>
+          <input
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm"
+            value={editData.email}
+            onChange={(e) =>
+              setEditData({ ...editData, email: e.target.value })
+            }
+          />
+        </div>
+
+        {/* Barangay */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Barangay</label>
+          <select
+            className="w-full border rounded-lg p-2.5 bg-gray-50 text-sm"
+            value={editData.barangay}
+            onChange={(e) =>
+              setEditData({ ...editData, barangay: e.target.value })
+            }
+          >
+            <option value="">Select Barangay</option>
+
+            {[
+              "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan",
+              "Balele","Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog",
+              "Boot","Cale","Darasa","Gonzales","Hidalgo","Janopol","Janopol Oriental",
+              "Laurel","Luyos","Mabini","Malaking Pulo","Maria Paz","Maugat","Montaña (Ik-ik)",
+              "Natatas","Pagaspas","Pantay Bata","Pantay Matanda","Poblacion 1","Poblacion 2",
+              "Poblacion 3","Poblacion 4","Poblacion 5","Poblacion 6",
+              "Poblacion 7","Sala","Sambat","San Jose","Santol","Santor","Sulpoc","Suplang",
+              "Talaga","Tinurik","Trapiche","Wawa","Ulango"
+            ].map((b, i) => (
+              <option key={i} value={b}>{b}</option>
+            ))}
+
+          </select>
+        </div>
+
+        {/* Phone */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Phone Number</label>
+          <div className="flex items-center border rounded-lg bg-gray-50 p-2.5">
+            <span className="text-gray-600 pr-2 text-sm">+63</span>
+            <input
+              className="w-full bg-gray-50 outline-none text-sm"
+              type="number"
+              value={editData.phone}
+              onChange={(e) =>
+                setEditData({ ...editData, phone: e.target.value })
+              }
+            />
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <button
+          className="w-full bg-blue-600 text-white p-2.5 rounded-lg text-sm font-medium hover:bg-blue-700"
+          onClick={saveEditFarmer}
+        >
+          Save Changes
+        </button>
+      </div>
     </div>
   </div>
 )}
