@@ -454,8 +454,9 @@ const addSoilType = async () => {
           </div>
         )}
 
-        <DashboardReports />
+        
       </div>
+          <DashboardReports />
     </div>
   );
 }
