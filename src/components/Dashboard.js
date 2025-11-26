@@ -158,16 +158,15 @@ const addSoilType = async () => {
       const metricsRes = await axios.get(`${baseUrl}/metrics`);
       setActiveFarmers(metricsRes.data.activeFarmers || 0);
 
-      const alertRes = await axios
-        .get(`${baseUrl}/api/alerts`)
-        .catch(() => ({ data: [] }));
+    const alertRes = await axios.get(`${baseUrl}/api/alerts/active`);
 
-      const allAlerts = alertRes.data || [];
-      setAlerts(allAlerts);
+const activeAlerts = alertRes.data || [];
 
-      setAlertCount(
-        allAlerts.filter((a) => a.severity === "Critical").length
-      );
+setActiveAlerts(activeAlerts);  // optional
+
+setAlertCount(
+  activeAlerts.filter((a) => a.severity === "Critical").length
+);
 
       const farmRes = await axios.get(`${baseUrl}/api/farm`);
       const farms = farmRes.data.farms || [];
