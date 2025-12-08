@@ -728,7 +728,6 @@ const handleAddFarmer = async (e) => {
   </div>
 
   <div className="min-w-[200px]">
-    <label className="block text-sm font-medium mb-1">Filter by Farmer (username)</label>
     <select
       value={usernameFilter}
       onChange={(e) => setUsernameFilter(e.target.value)}
