@@ -247,7 +247,34 @@ export default function DashboardReports() {
       { month: "Next 3 Months", predicted: Math.round(avg * 1.1) },
     ];
   })();
+const WeatherTooltip = ({ active, payload, label, total }) => {
+  if (!active || !payload || payload.length === 0) return null;
 
+  const d = new Date(label);
+  const prettyDate = isNaN(d) ? label : d.toLocaleDateString();
+
+  const rainfall = payload.find(p => p.dataKey === "rainfall")?.value ?? 0;
+  const yieldKg = payload.find(p => p.dataKey === "yieldKg")?.value ?? 0;
+
+  // % of total yield for filtered data
+  const pct = total > 0 ? (yieldKg / total) * 100 : 0;
+
+  return (
+    <div className="bg-white p-3 rounded shadow text-sm">
+      <div className="font-semibold mb-1">{prettyDate}</div>
+
+      <div>🌧️ Rainfall: <strong>{rainfall}</strong></div>
+
+      <div className="mt-1">
+        🌾 Yield: <strong>{yieldKg} kg</strong>
+      </div>
+
+      <div className="text-gray-600 text-xs mt-1">
+        ({pct.toFixed(1)}% of total yield)
+      </div>
+    </div>
+  );
+};
   return (
     <div className="mt-10 p-6 bg-emerald-50 rounded-2xl shadow-sm">
       {/* Header */}
@@ -372,7 +399,7 @@ export default function DashboardReports() {
                 <XAxis dataKey="date" />
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
+                <Tooltip content={<WeatherTooltip total={totalYieldForFiltered} />} />
                 <Legend />
                 <Line yAxisId="left" type="monotone" data={weatherRaw} dataKey="rainfall" stroke="#3b82f6" strokeWidth={2} />
                 <Line yAxisId="right" type="monotone" data={alignedYieldForWeather} dataKey="yieldKg" stroke="#10b981" strokeWidth={2} />
