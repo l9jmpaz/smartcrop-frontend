@@ -700,66 +700,66 @@ const handleAddFarmer = async (e) => {
             {/* Crop Filter */}
 
 
-<div className="flex gap-4 mb-4">
-  {/* CROP FILTER (GROUPED BY DATABASE FIELD) */}
-  <select
-    value={cropFilter}
-    onChange={(e) => setCropFilter(e.target.value)}
-    className="border p-2 rounded"
-  >
-    <option value="all">All Crops</option>
+<div className="flex flex-wrap gap-3 mb-4 items-start">
+  <div className="min-w-[180px]">
+    <select
+      value={cropFilter}
+      onChange={(e) => setCropFilter(e.target.value)}
+      className="border p-2 rounded w-full"
+    >
+      <option value="all">All Crops</option>
+      {Object.entries(
+        allCrops.reduce((groups, crop) => {
+          const g = crop.group || "Others";
+          if (!groups[g]) groups[g] = [];
+          groups[g].push(crop.name); // <- use crop.name (no brackety links)
+          return groups;
+        }, {})
+      ).map(([groupName, crops]) => (
+        <optgroup key={groupName} label={groupName}>
+          {crops.map((crop) => (
+            <option key={crop} value={crop}>
+              {crop}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  </div>
 
-    {/* Auto-group crops from database */}
-    {Object.entries(
-  allCrops.reduce((groups, crop) => {
-    const g = crop.group || "Others";
-    if (!groups[g]) groups[g] = [];
-    groups[g].push(crop.name); // ✅ FIXED — no brackets, no markdown link
-    return groups;
-  }, {})
-).map(([groupName, crops]) => (
-  <optgroup key={groupName} label={groupName}>
-    {crops.map((crop) => (
-      <option key={crop} value={crop}>
-        {crop}
-      </option>
-    ))}
-  </optgroup>
-))}
-  </select>
-{/* Filter by crop NAME (from allCrops) */}
-<div className="mb-4">
-  <label className="block text-sm font-medium mb-1">Filter by Farmer (username)</label>
-  <select
-    value={usernameFilter}
-    onChange={(e) => setUsernameFilter(e.target.value)}
-    className="border p-2 rounded w-full"
-  >
-    <option value="all">All Users</option>
-    {uniqueUsernames.map((u, i) => (
-      <option key={i} value={u}>{u}</option>
-    ))}
-  </select>
-</div>
+  <div className="min-w-[200px]">
+    <label className="block text-sm font-medium mb-1">Filter by Farmer (username)</label>
+    <select
+      value={usernameFilter}
+      onChange={(e) => setUsernameFilter(e.target.value)}
+      className="border p-2 rounded w-full"
+    >
+      <option value="all">All Users</option>
+      {uniqueUsernames.map((u, i) => (
+        <option key={i} value={u}>{u}</option>
+      ))}
+    </select>
+  </div>
 
-  {/* COMMON CROP FILTER */}
-  <select
-    value={commonCropFilter}
-    onChange={(e) => setCommonCropFilter(e.target.value)}
-    className="border p-2 rounded"
-  >
-    <option value="all">All</option>
-    <option value="monthly">Monthly Common Crop</option>
-    <option value="yearly">Yearly Common Crop</option>
-  </select>
+  <div className="min-w-[160px]">
+    <select
+      value={commonCropFilter}
+      onChange={(e) => setCommonCropFilter(e.target.value)}
+      className="border p-2 rounded w-full"
+    >
+      <option value="all">All</option>
+      <option value="monthly">Monthly Common Crop</option>
+      <option value="yearly">Yearly Common Crop</option>
+    </select>
+  </div>
 
-  {/* BARANGAY FILTER (NEW) */}
-  <select
-    value={barangayFilter}
-    onChange={(e) => setBarangayFilter(e.target.value)}
-    className="border p-2 rounded"
-  >
-    <option value="all">All Barangays</option>
+  <div className="min-w-[160px]">
+    <select
+      value={barangayFilter}
+      onChange={(e) => setBarangayFilter(e.target.value)}
+      className="border p-2 rounded w-full"
+    >
+      <option value="all">All Barangays</option>
     {[
       "Altura Bata","Altura Matanda","Altura South","Ambulong","Bagbag","Bagumbayan","Balele",
       "Banadero","Banjo East","Banjo West (Banjo Laurel)","Bilog-bilog","Boot","Cale","Darasa",
@@ -775,7 +775,7 @@ const handleAddFarmer = async (e) => {
     ))}
   </select>
 </div>
-
+</div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Leaf className="text-green-600" size={20} /> Crop Records
             </h2>
@@ -826,10 +826,14 @@ const handleAddFarmer = async (e) => {
 
               <tbody>
                 {farmers.flatMap((f) => {
+ // If username filter selected, skip farmers that don't match
+  if (usernameFilter !== "all" && (f.username || "").trim() !== usernameFilter) {
+    return [];
+  }
+  
 
   // 👉 FILTER OUT USERS WITH NO CROPS AT ALL
-  const fieldsWithCrop = (f.farms || []).filter(fm => fm.selectedCrop);
-
+  const fieldsWithCrop = (f.farms || []).filter((fm) => fm.selectedCrop);
   if (fieldsWithCrop.length === 0) return []; // hide user
 
   // 👉 NOW APPLY CROP FILTER
