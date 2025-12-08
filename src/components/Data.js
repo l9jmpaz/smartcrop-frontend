@@ -31,7 +31,7 @@ export default function Data() {
   const [yieldRecords, setYieldRecords] = useState([]);
   // ── NEW STATES ──
 const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'Active' | 'Inactive'
-const [cropNameFilter, setCropNameFilter] = useState("all"); // for crops tab
+const [usernameFilter, setUsernameFilter] = useState("all"); // for crops tab
 
 // Ban modal states
 const [showBanModal, setShowBanModal] = useState(false);
@@ -135,6 +135,7 @@ const [editData, setEditData] = useState({
   phone: "",
   barangay: ""
 })
+const uniqueUsernames = [...new Set(farmers.map(f => f.username))];
   /* ============================================================
      FETCH FARMERS + FIELDS + YIELDS
   ============================================================ */
@@ -712,18 +713,19 @@ const handleAddFarmer = async (e) => {
 ))}
   </select>
 {/* Filter by crop NAME (from allCrops) */}
-<select
-  value={cropNameFilter}
-  onChange={(e) => setCropNameFilter(e.target.value)}
-  className="border p-2 rounded"
->
-  <option value="all">Filter by name</option>
-  {allCrops.map((c) => (
-    <option key={c._id || c.name} value={c.name}>
-      {c.name}
-    </option>
-  ))}
-</select>
+<div className="mb-4">
+  <label className="block text-sm font-medium mb-1">Filter by Name</label>
+  <select
+    value={usernameFilter}
+    onChange={(e) => setUsernameFilter(e.target.value)}
+    className="border p-2 rounded w-full"
+  >
+    <option value="all">All Users</option>
+    {uniqueUsernames.map((u, i) => (
+      <option key={i} value={u}>{u}</option>
+    ))}
+  </select>
+</div>
 
   {/* COMMON CROP FILTER */}
   <select
