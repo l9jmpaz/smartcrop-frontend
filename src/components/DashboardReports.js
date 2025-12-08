@@ -51,7 +51,62 @@ export default function DashboardReports() {
   ];
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedYear, setSelectedYear] = useState("All");
+// --- MERGE weatherRaw + alignedYieldForWeather into one series keyed by date ---
+const mergedSeries = useMemo(() => {
+  const map = new Map();
 
+  const toISODate = (raw) => {
+    if (!raw) return null;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return null;
+    // canonicalize to ISO date (yyyy-mm-dd)
+    return d.toISOString().slice(0, 10);
+  };
+
+  // 1) add weather records (use their date as key)
+  (weatherRaw || []).forEach((w) => {
+    const key = toISODate(w.date);
+    if (!key) return;
+    const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+    existing.rainfall = (existing.rainfall || 0) + (Number(w.rainfall) || 0);
+    map.set(key, existing);
+  });
+
+  // 2) add aligned yields (use their date if present) OR use yieldTrends month->first-of-month fallback
+  (alignedYieldForWeather || []).forEach((y) => {
+    // alignedYieldForWeather entries you build earlier have date + yieldKg
+    const key = toISODate(y.date);
+    if (!key) return;
+    const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+    existing.yieldKg = (existing.yieldKg || 0) + (Number(y.yieldKg) || 0);
+    map.set(key, existing);
+  });
+
+  // 3) as a safety: if yieldTrends entries have month strings like "Nov 2025", parse them and put yield on first of month
+  (yieldTrends || []).forEach((t) => {
+    // if t has an explicit date field prefer that
+    if (t.date) {
+      const key = toISODate(t.date);
+      if (!key) return;
+      const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+      existing.yieldKg = (existing.yieldKg || 0) + (Number(t.yieldKg) || 0);
+      map.set(key, existing);
+      return;
+    }
+    // try parse t.month (e.g. "Nov 2025") into first of month
+    const parsed = new Date(t.month);
+    if (!isNaN(parsed.getTime())) {
+      const key = parsed.toISOString().slice(0, 10).replace(/-\d\d$/, "-01"); // keep yyyy-mm-01
+      const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+      existing.yieldKg = (existing.yieldKg || 0) + (Number(t.yieldKg) || 0);
+      map.set(key, existing);
+    }
+  });
+
+  // convert to array and sort chronologically
+  const arr = Array.from(map.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+  return arr;
+}, [weatherRaw, alignedYieldForWeather, yieldTrends]);
   // compute available years from raw farms tasks (for year dropdown)
   const availableYears = useMemo(() => {
     const years = new Set();
@@ -380,33 +435,55 @@ const WeatherTooltip = ({ active, payload, label, total }) => {
         )}
 
         {/* Weather vs Yield */}
-        {weatherRaw.length > 0 && (
-          <div className="chart-section mb-10">
-            <h3 className="font-semibold text-gray-700 mb-2">1.4.6 Weather (Rainfall) vs Yield Relationship</h3>
+       {mergedSeries.length > 0 && (
+  <div className="chart-section mb-10">
+    <h3 className="font-semibold text-gray-700 mb-2">
+      1.4.6 Weather (Rainfall) vs Yield Relationship
+    </h3>
 
-            {/* total yield for current filter */}
-            <div className="mb-2 text-sm text-gray-700">
-    <strong>Yield in current filter:</strong>{" "}
-    {totalYieldForFiltered.toLocaleString()} kg{" "}
-    <span className="text-gray-600">
-      ({percentOfCropHarvested.toFixed(1)}% of total harvested)
-    </span>
+    <div className="mb-2 text-sm text-gray-700">
+      <strong>Yield in current filter:</strong> {totalYieldForFiltered.toLocaleString()} kg{" "}
+      <span className="text-gray-600">
+        ({percentOfCropHarvested.toFixed(1)}% of total harvested)
+      </span>
+    </div>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={mergedSeries}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis
+          dataKey="date"
+          tickFormatter={(d) => {
+            const dt = new Date(d);
+            return isNaN(dt) ? d : dt.toLocaleDateString();
+          }}
+        />
+        <YAxis yAxisId="left" />
+        <YAxis yAxisId="right" orientation="right" />
+        <Tooltip content={<WeatherTooltip total={totalYieldForFiltered} />} />
+        <Legend />
+        <Line
+          yAxisId="left"
+          type="monotone"
+          dataKey="rainfall"
+          stroke="#3b82f6"
+          strokeWidth={2}
+          dot={{ r: 3 }}
+          activeDot={{ r: 5 }}
+        />
+        <Line
+          yAxisId="right"
+          type="monotone"
+          dataKey="yieldKg"
+          stroke="#10b981"
+          strokeWidth={2}
+          dot={{ r: 3 }}
+          activeDot={{ r: 5 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   </div>
-
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip content={<WeatherTooltip total={totalYieldForFiltered} />} />
-                <Legend />
-                <Line yAxisId="left" type="monotone" data={weatherRaw} dataKey="rainfall" stroke="#3b82f6" strokeWidth={2} />
-                <Line yAxisId="right" type="monotone" data={alignedYieldForWeather} dataKey="yieldKg" stroke="#10b981" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+)}
       </div>
     </div>
   );
