@@ -824,8 +824,6 @@ const handleAddFarmer = async (e) => {
   // Crop filter
   if (cropFilter !== "all" && crop !== cropFilter.toLowerCase())
     return false;
-if (cropNameFilter !== "all" && (fm.selectedCrop || "").toLowerCase() !== cropNameFilter.toLowerCase())
-  return false;
 
   // Common monthly
   if (commonCropFilter === "monthly" && crop !== commonMonthlyCrop)
