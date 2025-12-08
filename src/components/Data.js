@@ -314,7 +314,7 @@ const banFarmerWithReason = async () => {
   if (!banTarget) return;
   try {
     // backend expected: PUT /users/:id/ban { isBanned: true, banReason }
-    await axios.put(`${baseUrl}/users/${id}/ban`, {
+    await axios.put(`${baseUrl}/users/${farmer._id}/ban`, {
       isBanned: true,
       banReason: banReason || "Violation",
     });
