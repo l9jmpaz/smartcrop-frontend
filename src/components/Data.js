@@ -29,7 +29,15 @@ export default function Data() {
   const [farmers, setFarmers] = useState([]);
   const [weatherRecords, setWeatherRecords] = useState([]);
   const [yieldRecords, setYieldRecords] = useState([]);
+  // ── NEW STATES ──
+const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'Active' | 'Inactive'
+const [cropNameFilter, setCropNameFilter] = useState("all"); // for crops tab
 
+// Ban modal states
+const [showBanModal, setShowBanModal] = useState(false);
+const [banTarget, setBanTarget] = useState(null); // will hold farmer object
+const [banReason, setBanReason] = useState("");
+// ───────────────
   const [activeTab, setActiveTab] = useState("farmer");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -278,6 +286,45 @@ const toggleBan = async (farmer) => {
     toast.error("Failed to update ban status");
   }
 };
+
+// ── BAN / UNBAN HELPERS ──
+const openBanModal = (farmer) => {
+  setBanTarget(farmer);
+  setBanReason(farmer?.banReason || "");
+  setShowBanModal(true);
+};
+
+const banFarmerWithReason = async () => {
+  if (!banTarget) return;
+  try {
+    // backend expected: PUT /users/:id/ban { isBanned: true, banReason }
+    await axios.put(`${baseUrl}/users/${banTarget._id}/ban`, {
+      isBanned: true,
+      banReason: banReason || "Violation",
+    });
+    setShowBanModal(false);
+    setBanTarget(null);
+    setBanReason("");
+    await fetchFarmers();
+    toast.success("User banned");
+  } catch (err) {
+    console.error("ban error", err);
+    toast.error("Failed to ban user");
+  }
+};
+
+const unbanFarmerWithReason = async (farmer) => {
+  try {
+    // backend expected: PUT /users/:id/unban
+    await axios.put(`${baseUrl}/users/${farmer._id}/unban`);
+    await fetchFarmers();
+    toast.success("User unbanned");
+  } catch (err) {
+    console.error("unban error", err);
+    toast.error("Failed to unban");
+  }
+};
+// ──────────────────────────
   /* ============================================================
      DELETE FARMER
   ============================================================ */
@@ -413,28 +460,29 @@ const handleAddFarmer = async (e) => {
      FILTER FARMERS
   ============================================================ */
  const filteredFarmers = farmers.filter((f) => {
-  // 🚫 1. REMOVE ADMINS
+  // Remove admins
   if (String(f.role || "").toLowerCase() === "admin") return false;
 
-  // 🔍 2. SEARCH FILTER
-  const matchSearch = f.username
-    ?.toLowerCase()
-    .includes(search.toLowerCase());
+  // STATUS FILTER
+  if (statusFilter !== "all") {
+    if (String(f.status || "").toLowerCase() !== statusFilter.toLowerCase())
+      return false;
+  }
 
+  // SEARCH FILTER
+  const matchSearch = f.username?.toLowerCase().includes(search.toLowerCase());
   if (!matchSearch) return false;
 
-  // 🌾 3. CROP FILTER (unchanged)
+  // CROP FILTER (existing behavior) — keep your previous cropFilter logic
   if (cropFilter === "all") return true;
-
   return f.farms.some((field) => {
     if (!field.archived || !field.completedAt) return false;
-
     const d = new Date(field.completedAt);
     const key = `${field.selectedCrop}_${d.getMonth() + 1}_${d.getFullYear()}`;
-
     return key === cropFilter;
   });
 });
+
 
   /* ============================================================
      UI START
@@ -503,18 +551,40 @@ const handleAddFarmer = async (e) => {
     </div>
 
     {/* SEARCH + CROP FILTER */}
-    <div className="flex gap-4 mb-4">
+<div className="flex gap-4 mb-4 items-center">
+  {/* SEARCH */}
+  <input
+    placeholder="Search farmer..."
+    className="border p-2 rounded w-full"
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+  />
 
-      {/* SEARCH */}
-      <input
-        placeholder="Search farmer..."
-        className="border p-2 rounded w-full"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+  {/* STATUS FILTER */}
+  <select
+    value={statusFilter}
+    onChange={(e) => setStatusFilter(e.target.value)}
+    className="border p-2 rounded"
+  >
+    <option value="all">All status</option>
+    <option value="Active">Active</option>
+    <option value="Inactive">Inactive</option>
+  </select>
 
-    </div>
-
+  {/* Keep original crop filter select if you want (small example below) */}
+  <select
+    value={cropFilter}
+    onChange={(e) => setCropFilter(e.target.value)}
+    className="border p-2 rounded"
+  >
+    <option value="all">All Crops</option>
+    {cropFilterList.map((c) => (
+      <option key={c.value} value={c.value}>
+        {c.label}
+      </option>
+    ))}
+  </select>
+</div>
     {/* FARMERS LIST */}
     {!loading ? (
       <div className="relative max-h-[65vh] overflow-y-auto border rounded-lg">
@@ -576,35 +646,21 @@ const handleAddFarmer = async (e) => {
 
                 {/* ACTIONS */}
                 <td className="p-2 text-right space-x-3">
-                  <button
-                    onClick={() => openDetailsModal(f)}
-                    className="text-green-700"
-                  >
-                    View Details
-                  </button>
-                  <button
-  onClick={() => toggleBan(f)}
-  className={`font-medium ${
-    f.isBanned ? "text-green-600" : "text-red-600"
-  }`}
->
-  {f.isBanned ? "Unban" : "Ban"}
-</button>
-                  <button
-                    onClick={() => openEditModal(f)}
-                     className="text-blue-600"
+  <button onClick={() => openDetailsModal(f)} className="text-green-700">View Details</button>
 
-                  >
-                    <Edit size={16} />
-                  </button>
+  {f.isBanned ? (
+    <button onClick={() => unbanFarmerWithReason(f)} className="font-medium text-green-600">Unban</button>
+  ) : (
+    <button onClick={() => openBanModal(f)} className="font-medium text-red-600">Ban</button>
+  )}
 
-                  <button
-                    onClick={() => deleteFarmer(f._id)}
-                    className="text-red-600"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
+  <button onClick={() => editFarmer(f._id, f)} className="text-blue-600">
+    <Edit size={16} />
+  </button>
+  <button onClick={() => deleteFarmer(f._id)} className="text-red-600">
+    <Trash2 size={16} />
+  </button>
+</td>
 
               </tr>
             ))}
@@ -655,6 +711,19 @@ const handleAddFarmer = async (e) => {
   </optgroup>
 ))}
   </select>
+{/* Filter by crop NAME (from allCrops) */}
+<select
+  value={cropNameFilter}
+  onChange={(e) => setCropNameFilter(e.target.value)}
+  className="border p-2 rounded"
+>
+  <option value="all">Filter by name</option>
+  {allCrops.map((c) => (
+    <option key={c._id || c.name} value={c.name}>
+      {c.name}
+    </option>
+  ))}
+</select>
 
   {/* COMMON CROP FILTER */}
   <select
@@ -753,6 +822,8 @@ const handleAddFarmer = async (e) => {
   // Crop filter
   if (cropFilter !== "all" && crop !== cropFilter.toLowerCase())
     return false;
+if (cropNameFilter !== "all" && (fm.selectedCrop || "").toLowerCase() !== cropNameFilter.toLowerCase())
+  return false;
 
   // Common monthly
   if (commonCropFilter === "monthly" && crop !== commonMonthlyCrop)
@@ -910,7 +981,31 @@ const handleAddFarmer = async (e) => {
           )}
         </div>
       )}
+{showBanModal && banTarget && (
+  <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+    <div className="bg-white p-5 rounded-2xl w-full max-w-md shadow relative">
+      <button className="absolute top-3 right-3 text-gray-500" onClick={() => setShowBanModal(false)}>
+        <X size={18} />
+      </button>
+      <h3 className="text-xl font-semibold mb-2">Ban Farmer</h3>
+      <p className="text-sm text-gray-600 mb-3">User: <strong>{banTarget.username}</strong></p>
 
+      <label className="block mb-1 font-medium text-sm">Reason</label>
+      <textarea
+        value={banReason}
+        onChange={(e) => setBanReason(e.target.value)}
+        rows={4}
+        className="w-full border rounded-lg p-2 mb-4 bg-gray-50"
+        placeholder="Enter ban reason shown to the user (e.g. Invalid Government ID)"
+      />
+
+      <div className="flex justify-end gap-3">
+        <button className="px-4 py-2 bg-gray-200 rounded-lg" onClick={() => setShowBanModal(false)}>Cancel</button>
+        <button className="px-4 py-2 bg-red-600 text-white rounded-lg" onClick={banFarmerWithReason}>Ban & Save</button>
+      </div>
+    </div>
+  </div>
+)}
       {/* ============================================================
           VIEW FARMER DETAILS MODAL
       ============================================================ */}
