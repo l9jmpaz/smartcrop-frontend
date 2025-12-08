@@ -18,14 +18,14 @@ import {
   Cell,
 } from "recharts";
 
-const baseUrl = "[https://smartcrop-backend-1.onrender.com/api](https://smartcrop-backend-1.onrender.com/api)";
+const baseUrl = "https://smartcrop-backend-1.onrender.com/api";
 
 export default function DashboardReports() {
-  // raw source data
-  const [farms, setFarms] = useState([]); // <-- raw farms (used to recompute filtered data)
-  const [weatherData, setWeatherData] = useState([]);
+  // raw data
+  const [farmsRaw, setFarmsRaw] = useState([]);
+  const [weatherRaw, setWeatherRaw] = useState([]);
 
-  // UI/derived datasets (for export/display)
+  // datasets used for charts (filtered)
   const [cropYields, setCropYields] = useState([]);
   const [cropFrequency, setCropFrequency] = useState([]);
   const [yieldTrends, setYieldTrends] = useState([]);
@@ -33,75 +33,85 @@ export default function DashboardReports() {
   const [recommendation, setRecommendation] = useState("");
   const printRef = useRef();
 
-  // Filter controls
-  const [selectedMonth, setSelectedMonth] = useState("All"); // "All" or "Jan", "Feb" ...
-  const [selectedYear, setSelectedYear] = useState("All"); // "All" or "2025", etc.
+  // filters
+  const monthNames = [
+    "All",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const [selectedMonth, setSelectedMonth] = useState("All");
+  const [selectedYear, setSelectedYear] = useState("All");
 
-  // helper to get unique years from tasks across farms
+  // compute available years from raw farms tasks (for year dropdown)
   const availableYears = useMemo(() => {
     const years = new Set();
-    farms.forEach((f) => {
+    farmsRaw.forEach((f) => {
       (f.tasks || []).forEach((t) => {
-        if (t.date) {
-          const d = new Date(t.date);
-          if (!isNaN(d.getTime())) years.add(String(d.getFullYear()));
-        }
+        if (!t.date) return;
+        const d = new Date(t.date);
+        if (!isNaN(d.getTime())) years.add(String(d.getFullYear()));
       });
     });
     return ["All", ...Array.from(years).sort()];
-  }, [farms]);
+  }, [farmsRaw]);
 
-  const monthNames = [
-    "All","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
-  ];
-
-  // Fetch raw data once
+  // fetch raw data
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAll = async () => {
       try {
-        const farmRes = await axios.get(`${baseUrl}/farm`);
-        const weatherRes = await axios.get(`${baseUrl}/weather`);
-        const fetchedFarms = farmRes.data.farms || [];
-        const weather = weatherRes.data.data || [];
+        const [farmRes, weatherRes] = await Promise.all([
+          axios.get(`${baseUrl}/farm`),
+          axios.get(`${baseUrl}/weather`),
+        ]);
 
-        setFarms(fetchedFarms);
-        setWeatherData(weather);
+        const farms = farmRes.data?.farms || [];
+        const weather = weatherRes.data?.data || [];
 
-        // recommendation uses aggregated numbers; compute with raw data
-        // we'll compute recommendation below (after derived compute)
+        setFarmsRaw(farms);
+        setWeatherRaw(weather);
       } catch (err) {
-        console.error("❌ Error generating reports:", err);
+        console.error("Error fetching dashboard reports data:", err);
       }
     };
-    fetchData();
+    fetchAll();
   }, []);
 
-  // Compute derived datasets when farms / weather / filters change
-  useEffect(() => {
-    // filtering function for tasks by selectedMonth & selectedYear
-    const taskMatchesFilter = (taskDateStr) => {
-      if (!taskDateStr) return false;
-      const d = new Date(taskDateStr);
-      if (isNaN(d.getTime())) return false;
-      if (selectedYear !== "All" && String(d.getFullYear()) !== String(selectedYear)) return false;
-      if (selectedMonth !== "All") {
-        const targetMonthIndex = monthNames.indexOf(selectedMonth) - 1; // Jan->0
-        // monthNames indexes: All(0), Jan(1)...
-        if (targetMonthIndex < 0) return false;
-        if (d.getMonth() !== targetMonthIndex) return false;
-      }
-      return true;
-    };
+  // Helper: does the task date pass the selected filters?
+  const taskMatchesFilter = (dateStr) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    if (selectedYear !== "All" && String(d.getFullYear()) !== String(selectedYear))
+      return false;
+    if (selectedMonth !== "All") {
+      const idx = monthNames.indexOf(selectedMonth) - 1; // Jan->0
+      if (idx < 0) return false;
+      if (d.getMonth() !== idx) return false;
+    }
+    return true;
+  };
 
-    // 1) Crop Yield Summary (kilos per crop) using filtered tasks (harvest)
+  // compute derived datasets when raw data or filters change
+  useEffect(() => {
+    // 1) Crop Yield Summary (harvests)
     const cropMap = {};
-    farms.forEach((farm) => {
+    farmsRaw.forEach((farm) => {
       (farm.tasks || []).forEach((task) => {
         if (task.type?.toLowerCase().includes("harvest")) {
-          if (taskMatchesFilter(task.date)) {
-            const cropName = task.crop || "Unknown";
-            cropMap[cropName] = (cropMap[cropName] || 0) + (task.kilos || 0);
-          }
+          // include only if the task matches the month/year filter
+          if (!taskMatchesFilter(task.date)) return;
+          const cropName = task.crop || "Unknown";
+          cropMap[cropName] = (cropMap[cropName] || 0) + (task.kilos || 0);
         }
       });
     });
@@ -111,15 +121,14 @@ export default function DashboardReports() {
     }));
     setCropYields(yieldData);
 
-    // 2) Crop Frequency (plant count) using filtered tasks (plant)
+    // 2) Crop Frequency (plant tasks)
     const cropCount = {};
-    farms.forEach((farm) => {
+    farmsRaw.forEach((farm) => {
       (farm.tasks || []).forEach((task) => {
         if (task.type?.toLowerCase().includes("plant")) {
-          if (taskMatchesFilter(task.date)) {
-            const cropName = (task.crop || "Unknown Crop").trim();
-            cropCount[cropName] = (cropCount[cropName] || 0) + 1;
-          }
+          if (!taskMatchesFilter(task.date)) return;
+          const name = (task.crop || "Unknown Crop").trim();
+          cropCount[name] = (cropCount[name] || 0) + 1;
         }
       });
     });
@@ -129,74 +138,67 @@ export default function DashboardReports() {
     }));
     setCropFrequency(freqData);
 
-    // 3) Yield Trends — aggregate by month-year (filtered)
+    // 3) Yield Trends grouped by month-year
     const monthly = {};
-    farms.forEach((farm) => {
+    farmsRaw.forEach((farm) => {
       (farm.tasks || []).forEach((task) => {
         if (task.type?.toLowerCase().includes("harvest") && task.date) {
           if (!taskMatchesFilter(task.date)) return;
           const d = new Date(task.date);
-          if (!isNaN(d.getTime())) {
-            const key = d.toLocaleString("default", {
-              month: "short",
-              year: "numeric",
-            });
-            monthly[key] = (monthly[key] || 0) + (task.kilos || 0);
-          }
+          if (isNaN(d.getTime())) return;
+          const key = d.toLocaleString("default", { month: "short", year: "numeric" });
+          monthly[key] = (monthly[key] || 0) + (task.kilos || 0);
         }
       });
     });
-    const trendData = Object.entries(monthly).map(([month, yieldKg]) => ({
-      month,
-      yieldKg,
-    }));
-    // sort by year-month ascending (optional)
-    trendData.sort((a, b) => {
-      const pa = new Date(a.month);
-      const pb = new Date(b.month);
-      return pa - pb;
-    });
+    const trendData = Object.entries(monthly)
+      .map(([month, yieldKg]) => ({ month, yieldKg }))
+      // optional sort by real date so trend chart is chronological:
+      .sort((a, b) => {
+        const da = new Date(a.month);
+        const db = new Date(b.month);
+        return da - db;
+      });
     setYieldTrends(trendData);
 
-    // 4) Recommendation: recompute simply using filtered values
+    // 4) Recommendation (based on raw weather + derived yields)
     const avgRain =
-      (weatherData.reduce((a, b) => a + (b.rainfall || 0), 0) /
-        (weatherData.length || 1)) || 0;
-    const avgYield =
-      (yieldData.reduce((a, b) => a + b.kilos, 0) / (yieldData.length || 1)) || 0;
+      (weatherRaw.reduce((acc, w) => acc + (w.rainfall || 0), 0) / (weatherRaw.length || 1)) ||
+      0;
+    const avgYield = (yieldData.reduce((a, b) => a + b.kilos, 0) / (yieldData.length || 1)) || 0;
     if (avgRain > 100 && avgYield < 50)
       setRecommendation(
         "⚠️ High rainfall with low yield — consider better drainage or shorter-duration crops."
       );
-    else if (avgYield > 200)
-      setRecommendation("✅ Great performance — maintain current crop schedule.");
+    else if (avgYield > 200) setRecommendation("✅ Great performance — maintain current crop schedule.");
     else setRecommendation("📈 Normal conditions — monitor upcoming weather trends.");
-  }, [farms, weatherData, selectedMonth, selectedYear]);
+  }, [farmsRaw, weatherRaw, selectedMonth, selectedYear]); // recompute when filters change
 
-  // For the weather vs yield chart we build alignedYieldForWeather from filtered yieldTrends:
+  // aligned yield for weather chart: create an array matching yield trends
   const alignedYieldForWeather = useMemo(() => {
-    // Keep original approach: try to pair weather entries by index to yield trend entries.
-    // But we will show a "Total of Yield" for current filtered dataset (sum of yieldTrends).
-    // If you want a different alignment rule, change here.
-    return yieldTrends.map((item, index) => ({
-      // fallback date formatting kept similar as your original:
-      date: `2025-${String(index + 1).padStart(2, "0")}-01`,
-      yieldKg: item.yieldKg,
-    }));
-  }, [yieldTrends]);
+    // attempt to use month-year keys to align with weather dates if possible.
+    // For simplicity, return an array where each element corresponds to a yieldTrend item
+    // with a synthetic date or existing weather date if available by index.
+    return yieldTrends.map((item, idx) => {
+      // If weatherRaw has a date at same index, use it; otherwise synth date
+      let dateStr = `2025-${String(idx + 1).padStart(2, "0")}-01`;
+      if (weatherRaw[idx] && weatherRaw[idx].date) dateStr = weatherRaw[idx].date;
+      return { date: dateStr, yieldKg: item.yieldKg || 0 };
+    });
+  }, [yieldTrends, weatherRaw]);
 
-  // Total of filtered yields (used on weather vs yield display)
+  // total yield for filtered data (used on weather chart)
   const totalYieldForFiltered = useMemo(() => {
     return yieldTrends.reduce((a, b) => a + (b.yieldKg || 0), 0);
   }, [yieldTrends]);
 
-  // Export to Excel uses current (filtered) datasets
+  // export current (filtered) datasets to excel
   const handleExportExcel = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropYields), "Crop Yields");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(cropFrequency), "Common Crops");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(yieldTrends), "Yield Trends");
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(weatherData), "Weather Data");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(weatherRaw), "Weather Data");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     saveAs(
       new Blob([excelBuffer], {
@@ -206,15 +208,10 @@ export default function DashboardReports() {
     );
   };
 
-  // Print Only Graphs
+  // print graphs (same as original)
   const handlePrintGraphs = () => {
     const win = window.open("", "", "width=1000,height=800");
-    win.document.write(`
-      <html>
-        <head><title>SmartCrop Graph Reports</title></head>
-        <body>${printRef.current.innerHTML}</body>
-      </html>
-    `);
+    win.document.write(<html><head><title>SmartCrop Graph Reports</title></head><body>${printRef.current?.innerHTML || ""}</body></html>);
     win.document.close();
     win.print();
     win.close();
@@ -222,7 +219,7 @@ export default function DashboardReports() {
 
   const COLORS = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
-  // Predictive analytics (unchanged)
+  // predictive data (unchanged)
   const predictiveData = (() => {
     if (yieldTrends.length < 3) return [];
     const last3 = yieldTrends.slice(-3).map((x) => x.yieldKg);
@@ -240,7 +237,7 @@ export default function DashboardReports() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-emerald-700">📊 Analytical Reports</h2>
         <div className="flex gap-3 items-center">
-          {/* NEW: Month/Year filters (small, unobtrusive) */}
+          {/* Month & Year filters */}
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
@@ -322,7 +319,7 @@ export default function DashboardReports() {
           </ResponsiveContainer>
         </div>
 
-        {/* 🔮 1.4.5 Predictive Analytics (NEW BLOCK) */}
+        {/* Predictive */}
         {predictiveData.length > 0 && (
           <div className="chart-section mb-10">
             <h3 className="font-semibold text-gray-700 mb-2">1.4.5 Predictive Analytics on Expected Yields</h3>
@@ -338,12 +335,12 @@ export default function DashboardReports() {
           </div>
         )}
 
-        {/* 1.4.6 Weather vs Yield */}
-        {weatherData.length > 0 && (
+        {/* Weather vs Yield */}
+        {weatherRaw.length > 0 && (
           <div className="chart-section mb-10">
             <h3 className="font-semibold text-gray-700 mb-2">1.4.6 Weather (Rainfall) vs Yield Relationship</h3>
 
-            {/* NEW small summary showing total yield for currently filtered dataset */}
+            {/* total yield for current filter */}
             <div className="mb-2 text-sm text-gray-700">
               <strong>Yield in current filter:</strong> {totalYieldForFiltered.toLocaleString()} kg
             </div>
@@ -356,22 +353,8 @@ export default function DashboardReports() {
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
                 <Legend />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  data={weatherData}
-                  dataKey="rainfall"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  data={alignedYieldForWeather}
-                  dataKey="yieldKg"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                />
+                <Line yAxisId="left" type="monotone" data={weatherRaw} dataKey="rainfall" stroke="#3b82f6" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" data={alignedYieldForWeather} dataKey="yieldKg" stroke="#10b981" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
