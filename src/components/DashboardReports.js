@@ -51,62 +51,7 @@ export default function DashboardReports() {
   ];
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedYear, setSelectedYear] = useState("All");
-// --- MERGE weatherRaw + alignedYieldForWeather into one series keyed by date ---
-const mergedSeries = useMemo(() => {
-  const map = new Map();
 
-  const toISODate = (raw) => {
-    if (!raw) return null;
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return null;
-    // canonicalize to ISO date (yyyy-mm-dd)
-    return d.toISOString().slice(0, 10);
-  };
-
-  // 1) add weather records (use their date as key)
-  (weatherRaw || []).forEach((w) => {
-    const key = toISODate(w.date);
-    if (!key) return;
-    const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
-    existing.rainfall = (existing.rainfall || 0) + (Number(w.rainfall) || 0);
-    map.set(key, existing);
-  });
-
-  // 2) add aligned yields (use their date if present) OR use yieldTrends month->first-of-month fallback
-  (alignedYieldForWeather || []).forEach((y) => {
-    // alignedYieldForWeather entries you build earlier have date + yieldKg
-    const key = toISODate(y.date);
-    if (!key) return;
-    const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
-    existing.yieldKg = (existing.yieldKg || 0) + (Number(y.yieldKg) || 0);
-    map.set(key, existing);
-  });
-
-  // 3) as a safety: if yieldTrends entries have month strings like "Nov 2025", parse them and put yield on first of month
-  (yieldTrends || []).forEach((t) => {
-    // if t has an explicit date field prefer that
-    if (t.date) {
-      const key = toISODate(t.date);
-      if (!key) return;
-      const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
-      existing.yieldKg = (existing.yieldKg || 0) + (Number(t.yieldKg) || 0);
-      map.set(key, existing);
-      return;
-    }
-    // try parse t.month (e.g. "Nov 2025") into first of month
-    const parsed = new Date(t.month);
-    if (!isNaN(parsed.getTime())) {
-      const key = parsed.toISOString().slice(0, 10).replace(/-\d\d$/, "-01"); // keep yyyy-mm-01
-      const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
-      existing.yieldKg = (existing.yieldKg || 0) + (Number(t.yieldKg) || 0);
-      map.set(key, existing);
-    }
-  });
-
-  // convert to array and sort chronologically
-  const arr = Array.from(map.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
-  return arr;
-}, [weatherRaw, alignedYieldForWeather, yieldTrends]);
   // compute available years from raw farms tasks (for year dropdown)
   const availableYears = useMemo(() => {
     const years = new Set();
@@ -242,6 +187,62 @@ const mergedSeries = useMemo(() => {
     });
   }, [yieldTrends, weatherRaw]);
 
+  // --- MERGE weatherRaw + alignedYieldForWeather into one series keyed by date ---
+const mergedSeries = useMemo(() => {
+  const map = new Map();
+
+  const toISODate = (raw) => {
+    if (!raw) return null;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return null;
+    // canonicalize to ISO date (yyyy-mm-dd)
+    return d.toISOString().slice(0, 10);
+  };
+
+  // 1) add weather records (use their date as key)
+  (weatherRaw || []).forEach((w) => {
+    const key = toISODate(w.date);
+    if (!key) return;
+    const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+    existing.rainfall = (existing.rainfall || 0) + (Number(w.rainfall) || 0);
+    map.set(key, existing);
+  });
+
+  // 2) add aligned yields (use their date if present) OR use yieldTrends month->first-of-month fallback
+  (alignedYieldForWeather || []).forEach((y) => {
+    // alignedYieldForWeather entries you build earlier have date + yieldKg
+    const key = toISODate(y.date);
+    if (!key) return;
+    const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+    existing.yieldKg = (existing.yieldKg || 0) + (Number(y.yieldKg) || 0);
+    map.set(key, existing);
+  });
+
+  // 3) as a safety: if yieldTrends entries have month strings like "Nov 2025", parse them and put yield on first of month
+  (yieldTrends || []).forEach((t) => {
+    // if t has an explicit date field prefer that
+    if (t.date) {
+      const key = toISODate(t.date);
+      if (!key) return;
+      const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+      existing.yieldKg = (existing.yieldKg || 0) + (Number(t.yieldKg) || 0);
+      map.set(key, existing);
+      return;
+    }
+    // try parse t.month (e.g. "Nov 2025") into first of month
+    const parsed = new Date(t.month);
+    if (!isNaN(parsed.getTime())) {
+      const key = parsed.toISOString().slice(0, 10).replace(/-\d\d$/, "-01"); // keep yyyy-mm-01
+      const existing = map.get(key) || { date: key, rainfall: 0, yieldKg: 0 };
+      existing.yieldKg = (existing.yieldKg || 0) + (Number(t.yieldKg) || 0);
+      map.set(key, existing);
+    }
+  });
+
+  // convert to array and sort chronologically
+  const arr = Array.from(map.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+  return arr;
+}, [weatherRaw, alignedYieldForWeather, yieldTrends]);
   // total yield for filtered data (used on weather chart)
   const totalYieldForFiltered = useMemo(() => {
     return yieldTrends.reduce((a, b) => a + (b.yieldKg || 0), 0);
@@ -281,13 +282,40 @@ const mergedSeries = useMemo(() => {
   };
 
   // print graphs (same as original)
-  const handlePrintGraphs = () => {
-    const win = window.open("", "", "width=1000,height=800");
-    win.document.write(<html><head><title>SmartCrop Graph Reports</title></head><body>${printRef.current?.innerHTML || ""}</body></html>);
-    win.document.close();
-    win.print();
-    win.close();
-  };
+ const handlePrintGraphs = () => {
+  const content = printRef.current ? printRef.current.innerHTML : "";
+  const html = `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>SmartCrop Graph Reports</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 20px; color: #0f172a; }
+          .chart-section { margin-bottom: 18px; }
+        </style>
+      </head>
+      <body>${content}</body>
+    </html>`;
+
+  const win = window.open("", "", "width=1000,height=800");
+  if (!win) {
+    console.warn("Unable to open print window (popup blocked?)");
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+
+  setTimeout(() => {
+    try {
+      win.print();
+      win.close();
+    } catch (err) {
+      console.error("print error", err);
+    }
+  }, 300);
+};
+
 
   const COLORS = ["#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"];
 
@@ -435,7 +463,7 @@ const WeatherTooltip = ({ active, payload, label, total }) => {
         )}
 
         {/* Weather vs Yield */}
-       {mergedSeries.length > 0 && (
+        {mergedSeries.length > 0 && (
   <div className="chart-section mb-10">
     <h3 className="font-semibold text-gray-700 mb-2">
       1.4.6 Weather (Rainfall) vs Yield Relationship
