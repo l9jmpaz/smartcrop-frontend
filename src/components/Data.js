@@ -31,7 +31,22 @@ export default function Data() {
   const [yieldRecords, setYieldRecords] = useState([]);
   // ── NEW STATES ──
 const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'Active' | 'Inactive'
-const [usernameFilter, setUsernameFilter] = useState("all"); // for crops tab
+// state for username filter
+const [usernameFilter, setUsernameFilter] = useState("all");
+
+// compute unique usernames (exclude admins), run whenever farmers changes
+const uniqueUsernames = React.useMemo(() => {
+  if (!Array.isArray(farmers)) return [];
+
+  // filter out admin accounts and empty/null usernames
+  const names = farmers
+    .filter((f) => f && f.role !== "admin")   // exclude admin
+    .map((f) => (f.username || "").trim())    // map to username (safe)
+    .filter((u) => u.length > 0);             // drop empties
+
+  // unique
+  return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+}, [farmers]);
 
 // Ban modal states
 const [showBanModal, setShowBanModal] = useState(false);
@@ -135,7 +150,7 @@ const [editData, setEditData] = useState({
   phone: "",
   barangay: ""
 })
-const uniqueUsernames = [...new Set(farmers.map(f => f.username))];
+
   /* ============================================================
      FETCH FARMERS + FIELDS + YIELDS
   ============================================================ */
@@ -714,7 +729,7 @@ const handleAddFarmer = async (e) => {
   </select>
 {/* Filter by crop NAME (from allCrops) */}
 <div className="mb-4">
-  <label className="block text-sm font-medium mb-1">Filter by Name</label>
+  <label className="block text-sm font-medium mb-1">Filter by Farmer (username)</label>
   <select
     value={usernameFilter}
     onChange={(e) => setUsernameFilter(e.target.value)}
