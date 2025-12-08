@@ -191,7 +191,24 @@ export default function DashboardReports() {
   const totalYieldForFiltered = useMemo(() => {
     return yieldTrends.reduce((a, b) => a + (b.yieldKg || 0), 0);
   }, [yieldTrends]);
+// total yield across ALL harvests (no filters)
+  const totalYieldAll = useMemo(() => {
+    let sum = 0;
+    farmsRaw.forEach((farm) => {
+      (farm.tasks || []).forEach((t) => {
+        if (t.type?.toLowerCase().includes("harvest")) {
+          sum += Number(t.kilos || 0);
+        }
+      });
+    });
+    return sum;
+  }, [farmsRaw]);
 
+  // percent of total harvested represented by the currently filtered yield
+  const percentOfCropHarvested = useMemo(() => {
+    if (!totalYieldAll || totalYieldAll === 0) return 0;
+    return (totalYieldForFiltered / totalYieldAll) * 100;
+  }, [totalYieldForFiltered, totalYieldAll]);
   // export current (filtered) datasets to excel
   const handleExportExcel = () => {
     const workbook = XLSX.utils.book_new();
@@ -342,8 +359,12 @@ export default function DashboardReports() {
 
             {/* total yield for current filter */}
             <div className="mb-2 text-sm text-gray-700">
-              <strong>Yield in current filter:</strong> {totalYieldForFiltered.toLocaleString()} kg
-            </div>
+    <strong>Yield in current filter:</strong>{" "}
+    {totalYieldForFiltered.toLocaleString()} kg{" "}
+    <span className="text-gray-600">
+      ({percentOfCropHarvested.toFixed(1)}% of total harvested)
+    </span>
+  </div>
 
             <ResponsiveContainer width="100%" height={300}>
               <LineChart>
