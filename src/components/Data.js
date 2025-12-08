@@ -310,22 +310,37 @@ const openBanModal = (farmer) => {
   setShowBanModal(true);
 };
 
+// call this for "Ban" button: openBanModal(farmer)
+// call this for unban button: unbanFarmer(farmer)
 const banFarmerWithReason = async () => {
   if (!banTarget) return;
   try {
-    // backend expected: PUT /users/:id/ban { isBanned: true, banReason }
-    await axios.put(`${baseUrl}/users/${farmer._id}/ban`, {
+    const id = banTarget._id || banTarget.id;
+    await axios.patch(`${baseUrl}/users/${id}/ban`, {
       isBanned: true,
       banReason: banReason || "Violation",
     });
+    // update local UI
+    setFarmers(prev => prev.map(f => f._id === id ? { ...f, isBanned: true, banReason } : f));
     setShowBanModal(false);
     setBanTarget(null);
     setBanReason("");
-    await fetchFarmers();
-    toast.success("User banned");
+    toast.success("Farmer banned");
   } catch (err) {
-    console.error("ban error", err);
+    console.error(err);
     toast.error("Failed to ban user");
+  }
+};
+
+const unbanFarmer = async (farmer) => {
+  try {
+    const id = farmer._id || farmer.id;
+    await axios.patch(`${baseUrl}/users/${id}/ban`, { isBanned: false, banReason: "" });
+    setFarmers(prev => prev.map(f => f._id === id ? { ...f, isBanned: false, banReason: "" } : f));
+    toast.success("Farmer unbanned");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to unban");
   }
 };
 
