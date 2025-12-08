@@ -332,26 +332,37 @@ const banFarmerWithReason = async () => {
   }
 };
 
+// Single unified unban helper — use this everywhere
 const unbanFarmer = async (farmer) => {
   try {
-    const id = farmer._id || farmer.id;
-    await axios.patch(`${baseUrl}/users/${id}/ban`, { isBanned: false, banReason: "" });
-    setFarmers(prev => prev.map(f => f._id === id ? { ...f, isBanned: false, banReason: "" } : f));
+    const id = farmer?._id || farmer?.id;
+    if (!id) {
+      console.error("unbanFarmer: missing id", farmer);
+      toast.error("Missing user id");
+      return;
+    }
+
+    // call same route used for banning but set isBanned=false and clear reason
+    const res = await axios.patch(`${baseUrl}/users/${id}/ban`, {
+      isBanned: false,
+      banReason: ""   // clear stored reason on unban
+    });
+
+    // optionally inspect server reply for easier debugging
+    if (!res?.data?.success) {
+      console.error("unban responded:", res);
+      toast.error("Unban failed (server)");
+      return;
+    }
+
+    // update local UI state
+    setFarmers(prev =>
+      prev.map(f => ( (f._id || f.id) === id ? { ...f, isBanned: false, banReason: "" } : f ))
+    );
+
     toast.success("Farmer unbanned");
   } catch (err) {
-    console.error(err);
-    toast.error("Failed to unban");
-  }
-};
-
-const unbanFarmerWithReason = async (farmer) => {
-  try {
-    // backend expected: PUT /users/:id/unban
-    await axios.put(`${baseUrl}/users/${farmer._id}/unban`);
-    await fetchFarmers();
-    toast.success("User unbanned");
-  } catch (err) {
-    console.error("unban error", err);
+    console.error("unbanFarmer error:", err);
     toast.error("Failed to unban");
   }
 };
@@ -680,7 +691,7 @@ const handleAddFarmer = async (e) => {
   <button onClick={() => openDetailsModal(f)} className="text-green-700">View Details</button>
 
   {f.isBanned ? (
-    <button onClick={() => unbanFarmerWithReason(f)} className="font-medium text-green-600">Unban</button>
+    <button onClick={() => unbanFarmer(f)} className="font-medium text-green-600">Unban</button>
   ) : (
     <button onClick={() => openBanModal(f)} className="font-medium text-red-600">Ban</button>
   )}
